@@ -14,9 +14,23 @@ import EasterEgg from './components/effects/EasterEgg';
 
 gsap.registerPlugin(ScrollTrigger);
 
+const NAV_LINKS = [
+  ['Inicio',           '#inicio'],
+  ['Filosofía',        '#filosofia'],
+  ['Casos de Estudio', '#casos'],
+  ['Iniciar Proyecto', '#contacto'],
+];
+
 export default function Layout() {
   const [isScrolled,   setIsScrolled]   = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
+  const [menuOpen,     setMenuOpen]     = useState(false);
+
+  // Lock body scroll when mobile menu open
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
 
   useEffect(() => {
     // ── Lenis smooth scroll ───────────────────────────────────────────────
@@ -27,48 +41,29 @@ export default function Layout() {
       smoothTouch: false,
     });
 
-    // Sync Lenis → ScrollTrigger (spec-exact pattern)
     lenis.on('scroll', ({ scroll }) => {
       setIsScrolled(scroll > 50);
       ScrollTrigger.update();
     });
 
-    // GSAP ticker drives Lenis (replaces manual requestAnimationFrame)
     const rafFn = (time) => lenis.raf(time * 1000);
     gsap.ticker.add(rafFn);
     gsap.ticker.lagSmoothing(0);
 
-    // ── Animación 1: Hero logo se expande y desenfoca al scrollear ────────
+    // ── Animación 1: Hero logo ────────────────────────────────────────────
     gsap.to('.hero-logo', {
-      y: -150,
-      scale: 1.2,
-      opacity: 0.4,
-      filter: 'blur(2px)',
-      ease: 'none',
-      scrollTrigger: {
-        trigger: '#inicio',
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1.2,
-      },
+      y: -150, scale: 1.2, opacity: 0.4, filter: 'blur(2px)', ease: 'none',
+      scrollTrigger: { trigger: '#inicio', start: 'top top', end: 'bottom top', scrub: 1.2 },
     });
     gsap.to('.hero-tagline', {
-      y: -100,
-      opacity: 0,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: '#inicio',
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1.2,
-      },
+      y: -100, opacity: 0, ease: 'none',
+      scrollTrigger: { trigger: '#inicio', start: 'top top', end: 'bottom top', scrub: 1.2 },
     });
 
-    // ── Animación 2: Flash dorado sutil entre secciones ───────────────────
+    // ── Animación 2: Flash dorado ─────────────────────────────────────────
     ['#filosofia', '#casos', '#planes', '#contacto'].forEach(id => {
       ScrollTrigger.create({
-        trigger: id,
-        start: 'top 80%',
+        trigger: id, start: 'top 80%',
         onEnter: () => {
           gsap.to('.transition-flash', { opacity: 0.30, duration: 0.25, ease: 'power2.out' });
           gsap.to('.transition-flash', { opacity: 0,    duration: 0.40, ease: 'power2.in', delay: 0.25 });
@@ -80,61 +75,32 @@ export default function Layout() {
       });
     });
 
-    // ── Animación 3: Cards Casos de Estudio con entrada 3D ────────────────
+    // ── Animación 3: Cards 3D ─────────────────────────────────────────────
     gsap.utils.toArray('.case-card').forEach((card, i) => {
-      gsap.fromTo(
-        card,
+      gsap.fromTo(card,
         { opacity: 0, y: 100, rotationY: 15, rotationX: -10, scale: 0.9, transformPerspective: 800 },
         {
           opacity: 1, y: 0, rotationY: 0, rotationX: 0, scale: 1,
-          duration: 1.2,
-          ease: 'power3.out',
-          delay: i * 0.15,
-          scrollTrigger: {
-            trigger: card,
-            start: 'top 85%',
-            toggleActions: 'play none none reverse',
-          },
+          duration: 1.2, ease: 'power3.out', delay: i * 0.15,
+          scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none reverse' },
         }
       );
     });
 
-    // ── Animación 4: Night Mode en sección Zenith ─────────────────────────
+    // ── Animación 4: Night Mode Zenith ────────────────────────────────────
     ScrollTrigger.create({
-      trigger: '.section-zenith-experience',
-      start: 'top center',
-      end: 'bottom center',
-      onEnter: () => {
-        document.body.classList.add('night-mode');
-        gsap.to('.night-overlay', { opacity: 0.88, duration: 1.5, ease: 'power2.inOut' });
-      },
-      onLeave: () => {
-        document.body.classList.remove('night-mode');
-        gsap.to('.night-overlay', { opacity: 0, duration: 1.5, ease: 'power2.inOut' });
-      },
-      onEnterBack: () => {
-        document.body.classList.add('night-mode');
-        gsap.to('.night-overlay', { opacity: 0.88, duration: 1.5, ease: 'power2.inOut' });
-      },
-      onLeaveBack: () => {
-        document.body.classList.remove('night-mode');
-        gsap.to('.night-overlay', { opacity: 0, duration: 1.5, ease: 'power2.inOut' });
-      },
+      trigger: '.section-zenith-experience', start: 'top center', end: 'bottom center',
+      onEnter:     () => { document.body.classList.add('night-mode');    gsap.to('.night-overlay', { opacity: 0.88, duration: 1.5, ease: 'power2.inOut' }); },
+      onLeave:     () => { document.body.classList.remove('night-mode'); gsap.to('.night-overlay', { opacity: 0,    duration: 1.5, ease: 'power2.inOut' }); },
+      onEnterBack: () => { document.body.classList.add('night-mode');    gsap.to('.night-overlay', { opacity: 0.88, duration: 1.5, ease: 'power2.inOut' }); },
+      onLeaveBack: () => { document.body.classList.remove('night-mode'); gsap.to('.night-overlay', { opacity: 0,    duration: 1.5, ease: 'power2.inOut' }); },
     });
 
-    // ── Animación 5: CTA texto iluminado (gradient sweep) ─────────────────
+    // ── Animación 5: CTA gradient sweep ──────────────────────────────────
     gsap.fromTo('.cta-text',
       { backgroundPosition: '0% 50%' },
-      {
-        backgroundPosition: '100% 50%',
-        ease: 'none',
-        scrollTrigger: {
-          trigger: '.cta-text',
-          start: 'top 80%',
-          end: 'bottom 20%',
-          scrub: true,
-        },
-      }
+      { backgroundPosition: '100% 50%', ease: 'none',
+        scrollTrigger: { trigger: '.cta-text', start: 'top 80%', end: 'bottom 20%', scrub: true } }
     );
 
     return () => {
@@ -142,7 +108,15 @@ export default function Layout() {
       gsap.ticker.remove(rafFn);
       ScrollTrigger.getAll().forEach(t => t.kill());
     };
-  }, []); // runs once
+  }, []);
+
+  const handleMobileNav = (href) => {
+    setMenuOpen(false);
+    setTimeout(() => {
+      const el = document.querySelector(href);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 400);
+  };
 
   return (
     <>
@@ -150,25 +124,58 @@ export default function Layout() {
       <ThreadLine />
       <EasterEgg />
 
-      {/* Flash dorado entre secciones — z-50 */}
+      {/* Flash dorado entre secciones */}
       <div
         className="transition-flash fixed inset-0 pointer-events-none"
-        style={{
-          zIndex: 50,
-          opacity: 0,
-          background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.45) 0%, transparent 70%)',
-        }}
+        style={{ zIndex: 50, opacity: 0, background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.45) 0%, transparent 70%)' }}
       />
 
-      {/* Night mode overlay — cubre canvas cuando entra Zenith */}
+      {/* Night mode overlay */}
       <div
         className="night-overlay fixed inset-0 pointer-events-none"
         style={{ zIndex: 5, opacity: 0, backgroundColor: '#212842' }}
       />
 
+      {/* ── Hamburger — mobile only, always visible ── */}
+      <div
+        className="hamburger-mobile"
+        onClick={() => setMenuOpen(prev => !prev)}
+        role="button"
+        aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+      >
+        <span />
+        <span style={{ opacity: menuOpen ? 0 : 1, transform: menuOpen ? 'scaleX(0)' : 'scaleX(1)' }} />
+        <span />
+      </div>
+
+      {/* ── Mobile fullscreen menu ── */}
+      <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
+        <div
+          role="button"
+          onClick={() => setMenuOpen(false)}
+          style={{
+            position: 'absolute', top: 24, right: 24,
+            width: 44, height: 44,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: '#F0E7D5', fontSize: '1.4rem',
+          }}
+        >
+          ✕
+        </div>
+        {NAV_LINKS.map(([label, href]) => (
+          <a
+            key={href}
+            href={href}
+            onClick={(e) => { e.preventDefault(); handleMobileNav(href); }}
+          >
+            {label}
+          </a>
+        ))}
+      </div>
+
       <div className="w-full relative">
 
-        {/* ── Nav fijo ─────────────────────────────────────────────────── */}
+        {/* ── Nav fijo ── */}
         <nav
           className="fixed top-0 left-0 w-full px-8 py-5 flex items-center justify-between pointer-events-none transition-all duration-500"
           style={{
@@ -184,26 +191,24 @@ export default function Layout() {
             <span className="font-playfair font-bold text-3xl" style={{ color: '#212842' }}>R</span>
             <span className="font-playfair font-bold text-2xl ml-1" style={{ color: '#D4AF37' }}>✦</span>
           </div>
-          <div className="flex items-center gap-4 md:gap-8 pointer-events-auto">
-            <div className="hidden md:flex items-center gap-8">
-              {[
-                ['Inicio',          '#inicio'],
-                ['Filosofía',       '#filosofia'],
-                ['Casos de Estudio','#casos'],
-              ].map(([label, href]) => (
-                <a key={href} href={href}
-                  className="font-montserrat text-sm transition-colors"
-                  style={{ color: '#212842' }}
-                  onMouseEnter={e => e.target.style.color = '#D4AF37'}
-                  onMouseLeave={e => e.target.style.color = '#212842'}
-                >
-                  {label}
-                </a>
-              ))}
-            </div>
+          <div className="hidden md:flex items-center gap-8 pointer-events-auto">
+            {[
+              ['Inicio',           '#inicio'],
+              ['Filosofía',        '#filosofia'],
+              ['Casos de Estudio', '#casos'],
+            ].map(([label, href]) => (
+              <a key={href} href={href}
+                className="font-montserrat text-sm transition-colors"
+                style={{ color: '#212842' }}
+                onMouseEnter={e => e.target.style.color = '#D4AF37'}
+                onMouseLeave={e => e.target.style.color = '#212842'}
+              >
+                {label}
+              </a>
+            ))}
             <a
               href="#contacto"
-              className="font-montserrat text-sm px-3 py-1.5 md:px-6 md:py-2"
+              className="font-montserrat text-sm px-6 py-2"
               style={{ color: '#D4AF37', border: '1px solid #D4AF37', transition: 'all 0.3s ease' }}
               onMouseEnter={e => { e.target.style.background = '#D4AF37'; e.target.style.color = '#212842'; }}
               onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = '#D4AF37'; }}
@@ -213,13 +218,13 @@ export default function Layout() {
           </div>
         </nav>
 
-        {/* ── Modal de casos de estudio ─────────────────────────────────── */}
+        {/* ── Modal de casos de estudio ── */}
         <AnimatePresence>
           {selectedCase && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.6 }}
-              className="fixed inset-0 flex items-center justify-center p-4"
+              className="fixed inset-0 flex items-start md:items-center justify-center p-0 md:p-4"
               style={{ zIndex: 60, background: 'rgba(0,26,51,0.60)', backdropFilter: 'blur(15px)' }}
               onClick={() => setSelectedCase(null)}
             >
@@ -228,44 +233,52 @@ export default function Layout() {
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={{ y: 20, opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="bg-white/40 backdrop-blur-md w-full max-w-3xl p-12 md:p-16 shadow-xl relative"
+                className="bg-white/40 backdrop-blur-md w-full md:max-w-3xl h-full md:h-auto overflow-y-auto shadow-xl relative p-6 md:p-16"
                 style={{ borderTop: '4px solid #D4AF37' }}
                 onClick={e => e.stopPropagation()}
               >
-                <button
+                {/* Close — 48px circular tap target */}
+                <div
+                  role="button"
                   onClick={() => setSelectedCase(null)}
-                  className="absolute top-6 right-6 font-montserrat text-sm uppercase tracking-widest transition-colors"
-                  style={{ color: 'rgba(33,40,66,0.5)' }}
-                  onMouseEnter={e => e.target.style.color = '#D4AF37'}
-                  onMouseLeave={e => e.target.style.color = 'rgba(33,40,66,0.5)'}
+                  style={{
+                    position: 'absolute', top: 16, right: 16,
+                    width: 48, height: 48,
+                    background: 'rgba(212,175,55,0.2)',
+                    borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', color: '#D4AF37', fontSize: '1.2rem',
+                    zIndex: 2,
+                  }}
                 >
-                  Cerrar ✕
-                </button>
-                <span className="font-montserrat text-xs uppercase tracking-[0.3em] text-[#856612] mb-4 block">
+                  ✕
+                </div>
+
+                <span className="font-montserrat text-xs uppercase tracking-[0.3em] text-[#856612] mb-4 block mt-2 md:mt-0">
                   {selectedCase.tag}
                 </span>
-                <h3 className="font-serif text-5xl md:text-6xl font-bold text-[#212842] mb-12">
+                <h3 className="font-serif text-[2rem] md:text-6xl font-bold text-[#212842] mb-6 md:mb-12">
                   {selectedCase.title}
                 </h3>
-                <div className="grid md:grid-cols-2 gap-12 font-serif text-[#4a4540]">
+                <div className="grid md:grid-cols-2 gap-6 md:gap-12 font-serif text-[#4a4540]">
                   <div>
                     <h4 className="text-[#856612] text-xs tracking-[0.3em] font-bold uppercase mb-4 font-montserrat">EL DESAFÍO</h4>
-                    <p className="text-xl md:text-2xl leading-[1.8]">{selectedCase.problem}</p>
+                    <p className="text-base md:text-2xl leading-[1.7] md:leading-[1.8]">{selectedCase.problem}</p>
                   </div>
                   <div>
                     <h4 className="text-[#856612] text-xs tracking-[0.3em] font-bold uppercase mb-4 font-montserrat">LA SOLUCIÓN</h4>
-                    <p className="text-xl md:text-2xl leading-[1.8]">{selectedCase.solution}</p>
-                    <div className="mt-8 border-t border-[#856612]/10 pt-8">
+                    <p className="text-base md:text-2xl leading-[1.7] md:leading-[1.8]">{selectedCase.solution}</p>
+                    <div className="mt-6 md:mt-8 border-t border-[#856612]/10 pt-6 md:pt-8">
                       <h4 className="text-[#856612] text-xs tracking-[0.3em] font-bold uppercase mb-4 font-montserrat">RESULTADO TÁCTICO</h4>
-                      <p className="text-lg leading-[1.8] italic opacity-90">
+                      <p className="text-sm md:text-lg leading-[1.8] italic opacity-90">
                         Implementación desplegada con éxito. Eficiencia operativa maximizada.
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="mt-16 text-center border-t border-[#856612]/10 pt-12">
+                <div className="mt-8 md:mt-16 text-center border-t border-[#856612]/10 pt-6 md:pt-12">
                   <button
-                    className="font-serif text-lg text-white uppercase px-12 py-5 tracking-widest font-bold transition-colors duration-500"
+                    className="font-serif text-base md:text-lg text-white uppercase px-8 md:px-12 py-4 md:py-5 tracking-widest font-bold transition-colors duration-500 w-full md:w-auto"
                     style={{ background: '#4a90e2' }}
                     onMouseEnter={e => e.target.style.background = '#D4AF37'}
                     onMouseLeave={e => e.target.style.background = '#4a90e2'}
@@ -278,7 +291,7 @@ export default function Layout() {
           )}
         </AnimatePresence>
 
-        {/* ── Secciones ─────────────────────────────────────────────────── */}
+        {/* ── Secciones ── */}
         <section id="inicio" className="h-screen w-full flex items-center justify-center relative" style={{ zIndex: 10 }}>
           <Hero isScrolled={isScrolled} />
         </section>
@@ -291,12 +304,10 @@ export default function Layout() {
           <Cases onSelectCase={setSelectedCase} />
         </section>
 
-        {/* section-zenith-experience → triggers night mode */}
         <section id="planes" className="section-zenith-experience w-full relative" style={{ zIndex: 10 }}>
           <MembershipSection />
         </section>
 
-        {/* CTA transitional — gradient sweep animation */}
         <section className="w-full pt-40 pb-20 flex items-center justify-center relative" style={{ zIndex: 10 }}>
           <p
             className="cta-text font-playfair italic text-xl text-center"
