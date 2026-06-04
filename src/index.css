@@ -184,41 +184,66 @@ img, video { max-width: 100%; }
 }
 
 /* =========================================
-   HAMBURGER BUTTON — mobile only
+   HAMBURGER BUTTON
    ========================================= */
 
-.hamburger-mobile {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 10002;
+.hamburger-btn {
   display: none;
-  flex-direction: column;
-  gap: 5px;
-  cursor: pointer;
-  padding: 10px;
-  background: rgba(10, 14, 26, 0.70) !important;
-  border: 1px solid rgba(212, 175, 55, 0.35) !important;
-  border-radius: 4px;
 }
 
-.hamburger-mobile span {
-  width: 24px;
-  height: 2px;
-  background: #F0E7D5;
-  display: block;
-  transition: all 0.3s ease;
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: flex !important;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 8px;
+    background: rgba(10, 14, 26, 0.75) !important;
+    border: 1px solid rgba(212, 175, 55, 0.4) !important;
+    border-radius: 4px;
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10002;
+  }
+
+  .hamburger-btn span {
+    width: 24px;
+    height: 2px;
+    background: #F0E7D5;
+    display: block;
+    transition: all 0.3s ease;
+  }
+
+  .desktop-nav-links {
+    display: none !important;
+  }
+
+  /* Hero tagline: tighter spacing to fit screen */
+  .hero-tagline {
+    font-size: 3vw !important;
+    letter-spacing: 2px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .hamburger-btn {
+    display: none !important;
+  }
 }
 
 /* =========================================
    MOBILE FULLSCREEN MENU
    ========================================= */
 
-.mobile-menu {
+.mobile-menu-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(10, 14, 26, 0.98);
-  z-index: 10001;
+  z-index: 9998;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -229,40 +254,24 @@ img, video { max-width: 100%; }
   transition: opacity 0.4s ease;
 }
 
-.mobile-menu.open {
+.mobile-menu-overlay.open {
   opacity: 1;
   pointer-events: auto;
 }
 
-.mobile-menu a {
+.mobile-menu-overlay a {
   font-family: 'Playfair Display', serif !important;
   font-size: 2.5rem !important;
   color: #F0E7D5 !important;
   text-decoration: none !important;
   letter-spacing: 4px !important;
-  transition: color 0.3s ease !important;
   background: none !important;
   border: none !important;
   text-transform: none !important;
+  transition: color 0.3s ease !important;
 }
 
-.mobile-menu a:hover,
-.mobile-menu a:active {
+.mobile-menu-overlay a:hover,
+.mobile-menu-overlay a:active {
   color: #D4AF37 !important;
-}
-
-/* =========================================
-   MOBILE OVERRIDES
-   ========================================= */
-
-@media (max-width: 768px) {
-  .hamburger-mobile {
-    display: flex !important;
-  }
-
-  /* Hero tagline: tighter spacing to fit screen */
-  .hero-tagline {
-    font-size: 3vw !important;
-    letter-spacing: 2px !important;
-  }
 }

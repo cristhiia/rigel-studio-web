@@ -138,7 +138,7 @@ export default function Layout() {
 
       {/* ── Hamburger — mobile only, always visible ── */}
       <div
-        className="hamburger-mobile"
+        className="hamburger-btn"
         onClick={() => setMenuOpen(prev => !prev)}
         role="button"
         aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
@@ -149,7 +149,7 @@ export default function Layout() {
       </div>
 
       {/* ── Mobile fullscreen menu ── */}
-      <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
+      <div className={`mobile-menu-overlay ${menuOpen ? 'open' : ''}`}>
         <div
           role="button"
           onClick={() => setMenuOpen(false)}
@@ -191,7 +191,7 @@ export default function Layout() {
             <span className="font-playfair font-bold text-3xl" style={{ color: '#212842' }}>R</span>
             <span className="font-playfair font-bold text-2xl ml-1" style={{ color: '#D4AF37' }}>✦</span>
           </div>
-          <div className="hidden md:flex items-center gap-8 pointer-events-auto">
+          <div className="desktop-nav-links hidden md:flex items-center gap-8 pointer-events-auto">
             {[
               ['Inicio',           '#inicio'],
               ['Filosofía',        '#filosofia'],
