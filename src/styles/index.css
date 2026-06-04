@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================
+   RIGEL STUDIO — DARK MODE GLOBAL
+   Paleta:
+     Fondo:      #0A0E1A
+     Texto:      #F0E7D5
+     Acento:     #D4AF37
+     Borde:      rgba(212,175,55,0.3)
+   ========================================= */
+
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #0A0E1A;
+    color: #F0E7D5;
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* ── Section entrance — IntersectionObserver ── */
+.fade-section {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.fade-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.fade-section > *:nth-child(1) { transition-delay: 0s; }
+.fade-section > *:nth-child(2) { transition-delay: 0.1s; }
+.fade-section > *:nth-child(3) { transition-delay: 0.2s; }
+
+/* #inicio always visible (already in viewport) */
+#inicio.fade-section {
+    opacity: 1;
+    transform: none;
+}
+
+/* ── Case card reveal ── */
+.case-card {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.case-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ── Intro overlay ── */
+.intro-overlay {
+    position: fixed;
+    inset: 0;
+    background: #0A0E1A;
+    z-index: 9999;
+    animation: introFade 1s ease 0.5s forwards;
+    pointer-events: none;
+}
+
+@keyframes introFade {
+    0%   { opacity: 1; }
+    100% { opacity: 0; visibility: hidden; }
+}
+
+/* ── Hero letter stagger ── */
+.hero-logo .letter {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(20px) rotateX(-15deg);
+    animation: letterReveal 0.6s ease forwards;
+}
+
+.hero-logo h1 .letter:nth-child(1)  { animation-delay: 0.8s; }
+.hero-logo h1 .letter:nth-child(2)  { animation-delay: 0.88s; }
+.hero-logo h1 .letter:nth-child(3)  { animation-delay: 0.96s; }
+.hero-logo h1 .letter:nth-child(4)  { animation-delay: 1.04s; }
+.hero-logo h1 .letter:nth-child(5)  { animation-delay: 1.12s; }
+
+.hero-logo h2 .letter:nth-child(1)  { animation-delay: 1.2s; }
+.hero-logo h2 .letter:nth-child(2)  { animation-delay: 1.28s; }
+.hero-logo h2 .letter:nth-child(3)  { animation-delay: 1.36s; }
+.hero-logo h2 .letter:nth-child(4)  { animation-delay: 1.44s; }
+.hero-logo h2 .letter:nth-child(5)  { animation-delay: 1.52s; }
+.hero-logo h2 .letter:nth-child(6)  { animation-delay: 1.60s; }
+
+@keyframes letterReveal {
+    0%   { opacity: 0; transform: translateY(20px) rotateX(-15deg); }
+    100% { opacity: 1; transform: translateY(0) rotateX(0); }
+}
+
+/* ── Tagline + scroll indicator ── */
+.hero-tagline {
+    opacity: 0;
+    animation: fadeUp 0.8s ease 2s forwards;
+}
+
+.scroll-indicator {
+    opacity: 0;
+    animation: fadeUp 0.6s ease 2.4s forwards, indicatorBounce 1.5s ease-in-out 3s infinite;
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes indicatorBounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%       { transform: translateX(-50%) translateY(8px); }
+}
+
+/* ── ThreadLine mobile ── */
+.mobile-thread-track  { display: none; }
+.desktop-thread-track { display: block; }
+
+@media (max-width: 768px) {
+    .desktop-thread-track { display: none !important; }
+    .mobile-thread-track  { display: block !important; }
+}

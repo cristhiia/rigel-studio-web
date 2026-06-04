@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .snap-y-mandatory {
+    scroll-snap-type: y mandatory;
+  }
+  .snap-start {
+    scroll-snap-align: start;
+  }
+  .glassmorphism {
+    background: rgba(250, 249, 246, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+}
+
+/* Regla estricta de fricción cero */
+a, button, input, textarea, .group, .group-hover {
+  transition: all 0.3s ease-in-out;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* =========================================
+   RIGEL STUDIO: DARK TACTICAL & HILO DORADO
+   ========================================= */
+
+/* Fondo base transparente para dejar ver el RigelBackground */
+body, html, main, #root {
+    background-color: transparent;
+    color: #0f172a;
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* 3. HEADER FIJO Y LIMPIO */
+header, nav {
+    position: fixed !important;
+    top: 0;
+    width: 100%;
+    z-index: 9999 !important;
+    background: rgba(0, 16, 36, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(197, 160, 40, 0.2) !important;
+}
+
+/* 4. TARJETAS DE ESTUDIO (Dark Mode con Blur) */
+div[class*="tarjeta"], div[class*="card"], div[class*="Estudio"] {
+    background: rgba(0, 23, 50, 0.5) !important; 
+    border: 1px solid rgba(197, 160, 40, 0.3) !important; 
+    border-radius: 4px !important;
+    padding: 2.5rem !important;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    backdrop-filter: blur(10px) !important; 
+    -webkit-backdrop-filter: blur(10px) !important;
+    position: relative; 
+    z-index: 10;
+}
+
+div[class*="tarjeta"]:hover, div[class*="card"]:hover, div[class*="Estudio"]:hover {
+    transform: translateY(-8px) !important;
+    border-color: rgba(197, 160, 40, 0.9) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+    background: rgba(0, 23, 50, 0.85) !important;
+}
+
+/* 5. MODAL / VENTANA DE DETALLES PREMIUM */
+div[role="dialog"], .modal-container, div[class*="modal"] > div {
+    background-color: #001024 !important; 
+    border: 1px solid #D4AF37 !important; 
+    border-radius: 4px !important;
+    padding: 3rem !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9) !important;
+    z-index: 99999 !important;
+}
+
+div[class*="backdrop"], div[class*="overlay"] {
+    background-color: rgba(0, 10, 20, 0.9) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    z-index: 99990 !important;
+}
+
+div[role="dialog"] p, .modal-container p, div[role="dialog"] h2, div[role="dialog"] h3 {
+    color: #F8FAFC !important;
+}
+
+/* 6. BOTONES */
+button {
+    background-color: transparent !important;
+    color: #D4AF37 !important;
+    border: 1px solid #D4AF37 !important;
+    letter-spacing: 2px !important;
+    text-transform: uppercase !important;
+    transition: all 0.3s ease !important;
+}
+
+button:hover {
+    background-color: #D4AF37 !important;
+    color: #001024 !important;
+}
+
+/* =========================================
+   PARCHE DE EMERGENCIA: PROPORCIONES Y NAVBAR
+   ========================================= */
+
+/* 1. Rescatar la Navbar (Letras blancas y legibles) */
+header *, nav *, header a, nav a {
+    color: #F8FAFC !important;
+    font-weight: 400 !important;
+    text-shadow: none !important;
+}
+
+/* 3. Frenar la transición (Lujo es sinónimo de suavidad) */
+
+
+section {
+    transition: all 1.2s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+/* =========================================
+   NIGHT MODE — Zenith section trigger
+   ========================================= */
+
+body.night-mode {
+    background-color: #212842;
+    color: #F0E7D5;
+    transition: background-color 1.5s ease, color 1.5s ease;
+}
+
+body.night-mode header,
+body.night-mode nav {
+    background: rgba(33, 40, 66, 0.92) !important;
+    border-bottom-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+/* =========================================
+   GLOBAL BOX MODEL + MEDIA
+   ========================================= */
+
+* { box-sizing: border-box; }
+
+img, video { max-width: 100%; }
+
+/* =========================================
+   MOBILE BASE
+   ========================================= */
+
+@media (max-width: 768px) {
+  html { font-size: 14px; }
+
+  .section-title {
+    font-size: 2rem !important;
+  }
+
+  section {
+    padding: 60px 20px !important;
+  }
+
+  /* ThreadLine: hide desktop vertical, show mobile bar */
+  .desktop-thread-track {
+    display: none !important;
+  }
+
+  /* EasterEgg trigger: larger tap target */
+  #easterEggTrigger {
+    top: 15px !important;
+    left: 15px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  /* ThreadLine: hide mobile bar on desktop */
+  .mobile-thread-track {
+    display: none !important;
+  }
+}
