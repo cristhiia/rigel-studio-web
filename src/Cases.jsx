@@ -33,7 +33,7 @@ const projects = [
 
 export default function Cases({ onSelectCase }) {
   return (
-    <div className="w-full mx-auto px-8 py-24 h-full flex flex-col justify-center bg-transparent">
+    <div className="w-full mx-auto px-4 py-12 md:px-8 md:py-24 h-full flex flex-col justify-center bg-transparent">
       <h2 className="font-playfair text-4xl font-bold text-[#212842] mb-12 text-center">Casos de Estudio</h2>
       
       <div className="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-8 pb-8">
@@ -45,7 +45,7 @@ export default function Cases({ onSelectCase }) {
             viewport={{ once: true }}
             transition={{ duration: 1.2, delay: i * 0.2, ease: [0.16, 1, 0.3, 1] }}
             onClick={() => onSelectCase(p)}
-            className="case-card cursor-pointer bg-slate-900/40 backdrop-blur-md border border-white/10 transition-all duration-300 p-8 flex flex-col justify-between group relative overflow-hidden shadow-xl shadow-black/20"
+            className="case-card cursor-pointer bg-slate-900/40 backdrop-blur-md border border-white/10 transition-all duration-300 p-6 md:p-8 flex flex-col justify-between group relative overflow-hidden shadow-xl shadow-black/20"
           >
             {/* Subtle hover glow effect */}
             <div className="absolute inset-0 bg-[#ffffff]/0 group-hover:bg-[#ffffff]/10 transition-colors duration-500"></div>

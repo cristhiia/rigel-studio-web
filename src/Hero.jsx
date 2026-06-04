@@ -212,7 +212,7 @@ export default function Hero({ isScrolled }) {
       {/* ── hero-logo: RIGEL STUDIO ── */}
       <div className="hero-logo flex flex-col items-center text-center font-serif mt-2">
         <h1
-          className="text-[6rem] md:text-[10rem] text-[#212842] tracking-tight font-bold leading-none flex"
+          className="text-[15vw] md:text-[10rem] text-[#212842] tracking-tight font-bold leading-none flex"
           style={{ perspective: '800px' }}
         >
           {RIGEL.map((char, i) => (
@@ -226,7 +226,7 @@ export default function Hero({ isScrolled }) {
           ))}
         </h1>
         <h2
-          className="text-[3rem] md:text-[5rem] text-[#212842] tracking-[0.2em] font-medium mt-[-10px] flex"
+          className="text-[7.5vw] md:text-[5rem] text-[#212842] tracking-[0.2em] font-medium mt-[-10px] flex"
           style={{ perspective: '800px' }}
         >
           {STUDIO.map((char, i) => (
@@ -244,7 +244,7 @@ export default function Hero({ isScrolled }) {
       {/* ── hero-tagline ── */}
       <p
         ref={taglineRef}
-        className="hero-tagline font-montserrat text-sm md:text-base tracking-[0.3em] text-[#212842]/50 uppercase mt-8"
+        className="hero-tagline font-montserrat text-[3.5vw] md:text-base tracking-[0.3em] text-[#212842]/50 uppercase mt-8 text-center px-4"
       >
         Software que entiende tu negocio
       </p>

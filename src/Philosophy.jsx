@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 export default function Philosophy() {
   return (
-    <section className="bg-transparent py-32 px-6 flex justify-center border-t border-[#856612]/10 relative z-10 w-full min-h-[80vh]">
+    <section className="bg-transparent py-16 md:py-32 px-5 md:px-6 flex justify-center border-t border-[#856612]/10 relative z-10 w-full min-h-[80vh]">
       <motion.div 
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -21,7 +21,7 @@ export default function Philosophy() {
         </div>
 
         {/* Cuerpo de la Carta */}
-        <article className="font-serif text-[#4a4540] text-lg md:text-xl leading-[1.8] space-y-8 italic opacity-90">
+        <article className="font-serif text-[#4a4540] text-base md:text-xl leading-[1.8] space-y-8 italic opacity-90">
           <p>
             "En un mundo saturado de soluciones genéricas y datos expuestos, Rigel Studio nació bajo una premisa innegociable: la tecnología debe ser tan privada como efectiva."
           </p>

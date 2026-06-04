@@ -171,6 +171,11 @@ export default function EasterEgg() {
           0%,100% { opacity: 0.4; transform: scale(1); }
           50%      { opacity: 0.7; transform: scale(1.1); }
         }
+        @media (max-width: 768px) {
+          #easterEggTrigger span {
+            font-size: 1.8rem !important;
+          }
+        }
       `}</style>
 
       {/* ── Modal ── */}

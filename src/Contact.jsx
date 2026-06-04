@@ -22,7 +22,7 @@ export default function Contact() {
       id="contacto"
       className="h-full w-full flex items-center justify-center bg-transparent"
     >
-      <div className="w-full max-w-2xl px-8 py-16 flex flex-col items-center text-center">
+      <div className="w-full max-w-2xl px-5 md:px-8 py-16 flex flex-col items-center text-center">
 
         {/* Header */}
         <motion.div
@@ -58,7 +58,7 @@ export default function Contact() {
             viewport={{ once: true }}
             transition={{ duration: 1.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
             onSubmit={handleSubmit}
-            className="w-full flex flex-col gap-10 bg-white/40 backdrop-blur-md border border-white/30 shadow-xl shadow-black/5 p-10 rounded-sm"
+            className="w-full flex flex-col gap-6 md:gap-10 bg-white/40 backdrop-blur-md border border-white/30 shadow-xl shadow-black/5 p-6 md:p-10 rounded-sm"
           >
             {/* Inputs con borde solo en línea base */}
             {[
@@ -86,11 +86,11 @@ export default function Contact() {
             />
 
             {/* Botón Supernova Central */}
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-4 md:mt-6">
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                className="font-montserrat text-sm text-[#D4AF37] uppercase bg-transparent px-16 py-5 transition-all duration-500 hover:bg-[#D4AF37] hover:text-[#001024]"
+                className="w-full md:w-auto font-montserrat text-sm text-[#D4AF37] uppercase bg-transparent px-8 py-4 md:px-16 md:py-5 transition-all duration-500 hover:bg-[#D4AF37] hover:text-[#001024]"
                 style={{
                   border: '1px solid #D4AF37',
                   letterSpacing: '0.4em',

@@ -184,24 +184,26 @@ export default function Layout() {
             <span className="font-playfair font-bold text-3xl" style={{ color: '#212842' }}>R</span>
             <span className="font-playfair font-bold text-2xl ml-1" style={{ color: '#D4AF37' }}>✦</span>
           </div>
-          <div className="hidden md:flex items-center gap-8 pointer-events-auto">
-            {[
-              ['Inicio',          '#inicio'],
-              ['Filosofía',       '#filosofia'],
-              ['Casos de Estudio','#casos'],
-            ].map(([label, href]) => (
-              <a key={href} href={href}
-                className="font-montserrat text-sm transition-colors"
-                style={{ color: '#212842' }}
-                onMouseEnter={e => e.target.style.color = '#D4AF37'}
-                onMouseLeave={e => e.target.style.color = '#212842'}
-              >
-                {label}
-              </a>
-            ))}
+          <div className="flex items-center gap-4 md:gap-8 pointer-events-auto">
+            <div className="hidden md:flex items-center gap-8">
+              {[
+                ['Inicio',          '#inicio'],
+                ['Filosofía',       '#filosofia'],
+                ['Casos de Estudio','#casos'],
+              ].map(([label, href]) => (
+                <a key={href} href={href}
+                  className="font-montserrat text-sm transition-colors"
+                  style={{ color: '#212842' }}
+                  onMouseEnter={e => e.target.style.color = '#D4AF37'}
+                  onMouseLeave={e => e.target.style.color = '#212842'}
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
             <a
               href="#contacto"
-              className="font-montserrat text-sm px-6 py-2"
+              className="font-montserrat text-sm px-3 py-1.5 md:px-6 md:py-2"
               style={{ color: '#D4AF37', border: '1px solid #D4AF37', transition: 'all 0.3s ease' }}
               onMouseEnter={e => { e.target.style.background = '#D4AF37'; e.target.style.color = '#212842'; }}
               onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = '#D4AF37'; }}

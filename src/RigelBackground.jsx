@@ -26,8 +26,9 @@ export default function RigelBackground() {
     window.addEventListener('resize', setSize);
 
     // ── Background ambient particles ──────────────────────────────────────
+    const particleCount = window.innerWidth <= 768 ? 80 : 150;
     const bgParticles = [];
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < particleCount; i++) {
       const r = Math.random();
       let color = 'rgba(139, 134, 128, 0.6)';
       if      (r > 0.85) color = 'rgba(74, 144, 226, 0.8)';

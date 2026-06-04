@@ -103,6 +103,7 @@ export default function RigelJourney() {
   }).current;
 
   const alreadyRan = typeof window !== 'undefined' && !!sessionStorage.getItem('rigelJourneyDone');
+  const isMobile   = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   useEffect(() => {
     if (alreadyRan) return;
@@ -532,7 +533,7 @@ export default function RigelJourney() {
     };
   }, [alreadyRan]);
 
-  if (alreadyRan) return null;
+  if (alreadyRan || isMobile) return null;
 
   return (
     <>
