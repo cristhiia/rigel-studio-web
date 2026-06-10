@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' })
   }
 
-  const { nombre, email, empresa, mensaje } = req.body
+  const { nombre, email, empresa, presupuesto, mensaje } = req.body
 
   if (!nombre || !email || !mensaje) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' })
@@ -33,6 +33,7 @@ export default async function handler(req, res) {
           <p><strong>Nombre:</strong> ${nombre}</p>
           <p><strong>Email:</strong> ${email}</p>
           <p><strong>Empresa:</strong> ${empresa || 'No especificada'}</p>
+          <p><strong>Presupuesto:</strong> ${presupuesto || 'No especificado'}</p>
           <p><strong>Mensaje:</strong></p>
           <p style="background: #f5f5f5; padding: 16px; border-left: 3px solid #D4AF37;">${mensaje}</p>
         </div>

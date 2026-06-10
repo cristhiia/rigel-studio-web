@@ -10,6 +10,23 @@ const cardVariants = {
   show: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 80, damping: 18 } },
 };
 
+// ── Price display: "desde" pequeño + monto + "ARS" discreto ──────────────────
+function PriceDisplay({ amount, color = '#F0E7D5' }) {
+  return (
+    <div className="flex items-baseline gap-2 flex-wrap">
+      <span className="font-montserrat text-xs uppercase tracking-widest" style={{ color: 'rgba(240,231,213,0.45)' }}>
+        desde
+      </span>
+      <span className="font-playfair text-2xl font-bold" style={{ color }}>
+        ${amount}
+      </span>
+      <span className="font-montserrat text-xs" style={{ color: 'rgba(240,231,213,0.35)', letterSpacing: '0.15em' }}>
+        ARS
+      </span>
+    </div>
+  );
+}
+
 // ── NEXUS card ───────────────────────────────────────────────────────────────
 function NexusCard() {
   return (
@@ -32,25 +49,26 @@ function NexusCard() {
         El Comienzo
       </p>
       <p className="font-montserrat text-sm mb-8" style={{ color: 'rgba(240,231,213,0.7)', lineHeight: 1.7 }}>
-        La estructura sólida que tu negocio merece.
+        Tu entrada al universo Rigel. Un proyecto concreto, rápido y ejecutado con la misma obsesión por el detalle que todo lo que hacemos.
       </p>
 
       <div className="flex-grow mb-8">
-        <p className="font-montserrat text-[10px] uppercase tracking-widest mb-4" style={{ color: 'rgba(61,90,128,0.7)' }}>Fases</p>
+        <p className="font-montserrat text-[10px] uppercase tracking-widest mb-4" style={{ color: 'rgba(61,90,128,0.7)' }}>Incluye</p>
         {[
-          ['Auditoría y Arquitectura', '2–3 sem.'],
-          ['Desarrollo del Motor Core', '4–6 sem.'],
-          ['Refinamiento y Lanzamiento', '1–2 sem.'],
-        ].map(([fase, tiempo]) => (
-          <div key={fase} className="flex justify-between items-start mb-3">
-            <span className="font-montserrat text-sm" style={{ color: 'rgba(240,231,213,0.8)' }}>{fase}</span>
-            <span className="font-montserrat text-xs ml-4 shrink-0" style={{ color: 'rgba(240,231,213,0.45)' }}>{tiempo}</span>
+          'Presencia digital profesional o sistema inicial a medida',
+          'Diseño + desarrollo + puesta en producción',
+          'Entrega en 2 a 3 semanas',
+          'Soporte 30 días post-lanzamiento',
+        ].map(item => (
+          <div key={item} className="flex items-start gap-3 mb-3">
+            <span style={{ color: '#3D5A80', flexShrink: 0, marginTop: 1 }}>✦</span>
+            <span className="font-montserrat text-sm" style={{ color: 'rgba(240,231,213,0.8)' }}>{item}</span>
           </div>
         ))}
       </div>
 
       <div className="border-t pt-6 mb-6" style={{ borderColor: 'rgba(61,90,128,0.2)' }}>
-        <span className="font-playfair text-2xl font-bold" style={{ color: '#F0E7D5' }}>desde USD 8,000</span>
+        <PriceDisplay amount="350.000" />
       </div>
 
       <button
@@ -59,7 +77,7 @@ function NexusCard() {
         onMouseEnter={e => e.currentTarget.style.color = '#F4C842'}
         onMouseLeave={e => e.currentTarget.style.color = '#D4AF37'}
       >
-        Solicitar Propuesta <span style={{ fontSize: '1rem' }}>→</span>
+        Empezar acá <span style={{ fontSize: '1rem' }}>→</span>
       </button>
     </motion.div>
   );
@@ -86,8 +104,11 @@ function VanguardCard() {
       <p className="font-montserrat text-sm mb-6" style={{ color: 'rgba(240,231,213,0.6)', letterSpacing: '0.05em' }}>
         El Reconocimiento
       </p>
-      <p className="font-montserrat text-sm mb-8" style={{ color: 'rgba(240,231,213,0.7)', lineHeight: 1.7 }}>
+      <p className="font-montserrat text-sm mb-2" style={{ color: 'rgba(240,231,213,0.7)', lineHeight: 1.7 }}>
         Para quienes ya saben lo que valen.
+      </p>
+      <p className="font-montserrat text-xs mb-8" style={{ color: 'rgba(240,231,213,0.4)', fontStyle: 'italic', lineHeight: 1.6 }}>
+        El salto de una presencia digital a un sistema que trabaja por vos.
       </p>
 
       <div className="flex-grow mb-8">
@@ -105,7 +126,7 @@ function VanguardCard() {
       </div>
 
       <div className="border-t pt-6 mb-6" style={{ borderColor: 'rgba(184,184,184,0.4)' }}>
-        <span className="font-playfair text-2xl font-bold" style={{ color: '#F0E7D5' }}>desde USD 18,000</span>
+        <PriceDisplay amount="1.200.000" />
       </div>
 
       <button
@@ -168,7 +189,7 @@ function ZenithCard() {
       </div>
 
       <div className="border-t pt-6 mb-6" style={{ borderColor: 'rgba(212,175,55,0.25)' }}>
-        <span className="font-playfair text-2xl font-bold" style={{ color: '#D4AF37' }}>desde USD 35,000+</span>
+        <PriceDisplay amount="2.500.000" color="#D4AF37" />
       </div>
 
       <button

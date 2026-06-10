@@ -25,6 +25,7 @@ export default function Contact() {
       nombre: e.target.nombre.value,
       email: e.target.email.value,
       empresa: e.target.empresa.value,
+      presupuesto: e.target.presupuesto.value,
       mensaje: e.target.mensaje.value,
     };
 
@@ -95,6 +96,21 @@ export default function Contact() {
               className="placeholder:text-[rgba(240,231,213,0.35)]"
             />
           ))}
+
+          <select
+            name="presupuesto"
+            defaultValue=""
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            style={{ ...inputStyle, color: 'rgba(240,231,213,0.6)' }}
+          >
+            <option value="" disabled style={{ color: '#0A0E1A' }}>Presupuesto estimado</option>
+            <option value="Hasta $350.000" style={{ color: '#0A0E1A' }}>Hasta $350.000</option>
+            <option value="$350.000 a $1.200.000" style={{ color: '#0A0E1A' }}>$350.000 a $1.200.000</option>
+            <option value="$1.200.000 a $2.500.000" style={{ color: '#0A0E1A' }}>$1.200.000 a $2.500.000</option>
+            <option value="Más de $2.500.000" style={{ color: '#0A0E1A' }}>Más de $2.500.000</option>
+            <option value="Prefiero hablarlo" style={{ color: '#0A0E1A' }}>Prefiero hablarlo</option>
+          </select>
 
           <textarea
             name="mensaje"
