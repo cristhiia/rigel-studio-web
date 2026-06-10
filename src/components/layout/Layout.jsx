@@ -15,9 +15,23 @@ import RigelJourney from '../effects/RigelJourney';
 
 gsap.registerPlugin(ScrollTrigger);
 
+const NAV_LINKS = [
+  ['Inicio',           '#inicio'],
+  ['Filosofía',        '#filosofia'],
+  ['Casos de Estudio', '#casos'],
+  ['Iniciar Proyecto', '#contacto'],
+];
+
 export default function Layout() {
   const [isScrolled,   setIsScrolled]   = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
+  const [menuOpen,     setMenuOpen]     = useState(false);
+
+  // Lock body scroll when mobile menu open
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
 
   useEffect(() => {
     // ── Lenis smooth scroll ───────────────────────────────────────────────
@@ -137,12 +151,57 @@ export default function Layout() {
     };
   }, []); // runs once
 
+  const handleMobileNav = (href) => {
+    setMenuOpen(false);
+    setTimeout(() => {
+      const el = document.querySelector(href);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 400);
+  };
+
   return (
     <>
       <RigelBackground />
       <RigelJourney />
       <ThreadLine />
       <EasterEgg />
+
+      {/* ── Hamburger — mobile only, always visible ── */}
+      <div
+        className="hamburger-btn"
+        onClick={() => setMenuOpen(prev => !prev)}
+        role="button"
+        aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+      >
+        <span />
+        <span style={{ opacity: menuOpen ? 0 : 1, transform: menuOpen ? 'scaleX(0)' : 'scaleX(1)' }} />
+        <span />
+      </div>
+
+      {/* ── Mobile fullscreen menu ── */}
+      <div className={`mobile-menu-overlay ${menuOpen ? 'open' : ''}`}>
+        <div
+          role="button"
+          onClick={() => setMenuOpen(false)}
+          style={{
+            position: 'absolute', top: 24, right: 24,
+            width: 44, height: 44,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: '#F0E7D5', fontSize: '1.4rem',
+          }}
+        >
+          ✕
+        </div>
+        {NAV_LINKS.map(([label, href]) => (
+          <a
+            key={href}
+            href={href}
+            onClick={(e) => { e.preventDefault(); handleMobileNav(href); }}
+          >
+            {label}
+          </a>
+        ))}
+      </div>
 
       {/* Flash dorado entre secciones — z-50 */}
       <div
@@ -172,7 +231,7 @@ export default function Layout() {
             <span className="font-playfair font-bold text-3xl" style={{ color: '#F0E7D5' }}>R</span>
             <span className="font-playfair font-bold text-2xl ml-1" style={{ color: '#D4AF37' }}>✦</span>
           </div>
-          <div className="hidden md:flex items-center gap-8 pointer-events-auto">
+          <div className="desktop-nav-links hidden md:flex items-center gap-8 pointer-events-auto">
             {[
               ['Inicio',          '#inicio'],
               ['Filosofía',       '#filosofia'],

@@ -1,37 +1,53 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
 
 const inputStyle = {
   background: 'rgba(240,231,213,0.05)',
-  border: 'none',
-  borderBottom: '1px solid rgba(212,175,55,0.25)',
+  border: '1px solid rgba(212,175,55,0.25)',
+  borderRadius: '4px',
   color: '#F0E7D5',
   fontFamily: 'Montserrat, sans-serif',
   fontSize: '1.1rem',
-  padding: '0.75rem 0',
+  padding: '0.75rem 1rem',
   width: '100%',
   outline: 'none',
-  textAlign: 'center',
   transition: 'border-color 0.3s ease',
 };
 
 export default function Contact() {
-  const [formData, setFormData] = useState({ nombre: '', empresa: '', desafio: '', presupuesto: '' });
-  const [status,   setStatus]   = useState('idle');
+  const [status, setStatus] = useState('idle');
 
-  const handleSubmit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    setStatus('loading');
-    const finalDesafio = `Presupuesto: ${formData.presupuesto}\n\nProblema: ${formData.desafio}`;
-    const { error } = await supabase
-      .from('portfolio_leads')
-      .insert([{ nombre: formData.nombre, empresa: formData.empresa, desafio: finalDesafio }]);
-    setStatus(error ? 'error' : 'success');
+    setStatus('enviando');
+
+    const data = {
+      nombre: e.target.nombre.value,
+      email: e.target.email.value,
+      empresa: e.target.empresa.value,
+      mensaje: e.target.mensaje.value,
+    };
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (res.ok) {
+        setStatus('enviado');
+        e.target.reset();
+      } else {
+        setStatus('error');
+      }
+    } catch {
+      setStatus('error');
+    }
   };
 
-  const handleFocus = (e) => { e.target.style.borderBottomColor = '#D4AF37'; };
-  const handleBlur  = (e) => { e.target.style.borderBottomColor = 'rgba(212,175,55,0.25)'; };
+  const handleFocus = (e) => { e.target.style.borderColor = '#D4AF37'; };
+  const handleBlur  = (e) => { e.target.style.borderColor = 'rgba(212,175,55,0.25)'; };
 
   return (
     <section className="h-full w-full flex items-center justify-center bg-transparent">
@@ -49,91 +65,85 @@ export default function Contact() {
           </h2>
         </motion.div>
 
-        {status === 'success' ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="py-16 text-center"
-          >
-            <p className="font-montserrat tracking-[0.4em] uppercase text-sm mb-4" style={{ color: '#D4AF37' }}>
-              Transmisión Recibida.
-            </p>
-            <p className="font-playfair italic text-xl" style={{ color: 'rgba(240,231,213,0.6)' }}>
-              Nos pondremos en contacto a la brevedad.
-            </p>
-          </motion.div>
-        ) : (
-          <motion.form
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            onSubmit={handleSubmit}
-            className="w-full flex flex-col gap-10 p-10 rounded-sm"
-            style={{
-              background: 'rgba(240,231,213,0.03)',
-              border: '1px solid rgba(212,175,55,0.15)',
-              backdropFilter: 'blur(12px)',
-            }}
-          >
-            {[
-              { placeholder: 'Nombre',              field: 'nombre',      type: 'text', required: true  },
-              { placeholder: 'Empresa',             field: 'empresa',     type: 'text', required: true  },
-              { placeholder: 'Presupuesto Estimado',field: 'presupuesto', type: 'text', required: false },
-            ].map(({ placeholder, field, type, required }) => (
-              <input
-                key={field}
-                type={type}
-                placeholder={placeholder}
-                required={required}
-                onChange={e => setFormData({ ...formData, [field]: e.target.value })}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                style={{
-                  ...inputStyle,
-                  '::placeholder': { color: 'rgba(240,231,213,0.35)' },
-                }}
-                className="placeholder:text-[rgba(240,231,213,0.35)]"
-              />
-            ))}
-
-            <textarea
-              placeholder="El Desafío Operativo..."
-              required
-              rows={3}
-              onChange={e => setFormData({ ...formData, desafio: e.target.value })}
+        <motion.form
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          onSubmit={onSubmit}
+          className="w-full flex flex-col gap-6 p-10 rounded-sm"
+          style={{
+            background: 'rgba(240,231,213,0.03)',
+            border: '1px solid rgba(212,175,55,0.15)',
+            backdropFilter: 'blur(12px)',
+          }}
+        >
+          {[
+            { placeholder: 'Nombre', name: 'nombre', type: 'text',  required: true },
+            { placeholder: 'Email',  name: 'email',  type: 'email', required: true },
+            { placeholder: 'Empresa',name: 'empresa',type: 'text',  required: false },
+          ].map(({ placeholder, name, type, required }) => (
+            <input
+              key={name}
+              name={name}
+              type={type}
+              placeholder={placeholder}
+              required={required}
               onFocus={handleFocus}
               onBlur={handleBlur}
-              style={{ ...inputStyle, resize: 'none' }}
+              style={inputStyle}
               className="placeholder:text-[rgba(240,231,213,0.35)]"
             />
+          ))}
 
-            <div className="flex justify-center mt-6">
-              <button
-                type="submit"
-                disabled={status === 'loading'}
-                style={{
-                  background: '#D4AF37',
-                  color: '#0A0E1A',
-                  border: 'none',
-                  fontFamily: 'Montserrat, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  letterSpacing: '0.3em',
-                  textTransform: 'uppercase',
-                  padding: '18px 56px',
-                  cursor: 'pointer',
-                  transition: 'background 0.3s ease, box-shadow 0.3s ease',
-                  boxShadow: '0 0 20px rgba(212,175,55,0.2)',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#F4C842'; e.currentTarget.style.boxShadow = '0 0 40px rgba(212,175,55,0.5)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#D4AF37'; e.currentTarget.style.boxShadow = '0 0 20px rgba(212,175,55,0.2)'; }}
-              >
-                {status === 'loading' ? 'Iniciando...' : 'Solicitar Evaluación'}
-              </button>
-            </div>
-          </motion.form>
-        )}
+          <textarea
+            name="mensaje"
+            placeholder="Tu mensaje..."
+            required
+            rows={4}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            style={{ ...inputStyle, resize: 'none' }}
+            className="placeholder:text-[rgba(240,231,213,0.35)]"
+          />
+
+          <div className="flex flex-col items-center gap-4 mt-4">
+            <button
+              type="submit"
+              disabled={status === 'enviando'}
+              style={{
+                background: '#D4AF37',
+                color: '#0A0E1A',
+                border: 'none',
+                fontFamily: 'Montserrat, sans-serif',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                letterSpacing: '0.3em',
+                textTransform: 'uppercase',
+                padding: '18px 56px',
+                cursor: status === 'enviando' ? 'default' : 'pointer',
+                opacity: status === 'enviando' ? 0.7 : 1,
+                transition: 'background 0.3s ease, box-shadow 0.3s ease',
+                boxShadow: '0 0 20px rgba(212,175,55,0.2)',
+              }}
+              onMouseEnter={e => { if (status !== 'enviando') { e.currentTarget.style.background = '#F4C842'; e.currentTarget.style.boxShadow = '0 0 40px rgba(212,175,55,0.5)'; } }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#D4AF37'; e.currentTarget.style.boxShadow = '0 0 20px rgba(212,175,55,0.2)'; }}
+            >
+              {status === 'enviando' ? 'Enviando...' : 'Enviar Mensaje'}
+            </button>
+
+            {status === 'enviado' && (
+              <p className="font-montserrat text-sm" style={{ color: '#D4AF37' }}>
+                Mensaje recibido. Te respondo en menos de 24 horas.
+              </p>
+            )}
+            {status === 'error' && (
+              <p className="font-montserrat text-sm" style={{ color: 'rgba(240,231,213,0.7)' }}>
+                Hubo un problema. Escribime directo a contacto@rigelstudio.com
+              </p>
+            )}
+          </div>
+        </motion.form>
       </div>
     </section>
   );

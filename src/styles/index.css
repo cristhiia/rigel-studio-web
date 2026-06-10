@@ -121,3 +121,90 @@ html, body, #root {
     .desktop-thread-track { display: none !important; }
     .mobile-thread-track  { display: block !important; }
 }
+
+/* =========================================
+   HAMBURGER BUTTON
+   ========================================= */
+
+.hamburger-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: flex !important;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 8px;
+    background: rgba(10, 14, 26, 0.75) !important;
+    border: 1px solid rgba(212, 175, 55, 0.4) !important;
+    border-radius: 4px;
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10002;
+  }
+
+  .hamburger-btn span {
+    width: 24px;
+    height: 2px;
+    background: #F0E7D5;
+    display: block;
+    transition: all 0.3s ease;
+  }
+
+  .desktop-nav-links {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .hamburger-btn {
+    display: none !important;
+  }
+}
+
+/* =========================================
+   MOBILE FULLSCREEN MENU
+   ========================================= */
+
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 14, 26, 0.98);
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.mobile-menu-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mobile-menu-overlay a {
+  font-family: 'Playfair Display', serif !important;
+  font-size: 2.5rem !important;
+  color: #F0E7D5 !important;
+  text-decoration: none !important;
+  letter-spacing: 4px !important;
+  background: none !important;
+  border: none !important;
+  text-transform: none !important;
+  transition: color 0.3s ease !important;
+}
+
+.mobile-menu-overlay a:hover,
+.mobile-menu-overlay a:active {
+  color: #D4AF37 !important;
+}
