@@ -50,19 +50,7 @@ export default function Cases({ onSelectCase }) {
             viewport={{ once: true }}
             transition={{ duration: 1.2, delay: i * 0.2, ease: [0.16, 1, 0.3, 1] }}
             onClick={() => onSelectCase(p)}
-            className="case-card cursor-pointer backdrop-blur-md transition-all duration-300 p-8 flex flex-col justify-between group relative overflow-hidden"
-            style={{
-              background: 'rgba(240,231,213,0.05)',
-              border: '1px solid rgba(212,175,55,0.2)',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(212,175,55,0.5)';
-              e.currentTarget.style.background  = 'rgba(240,231,213,0.08)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'rgba(212,175,55,0.2)';
-              e.currentTarget.style.background  = 'rgba(240,231,213,0.05)';
-            }}
+            className="case-card glass-card cursor-pointer transition-all duration-300 p-8 flex flex-col justify-between group relative overflow-hidden"
           >
             <div className="relative z-10 flex-grow">
               <span

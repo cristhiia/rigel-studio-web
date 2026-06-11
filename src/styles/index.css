@@ -40,6 +40,55 @@ html, body, #root {
     transform: none;
 }
 
+/* =========================================
+   GLASSMORPHISM — premium glass cards
+   ========================================= */
+
+.glass-card {
+    background: linear-gradient(135deg,
+        rgba(240,231,213,0.08) 0%,
+        rgba(240,231,213,0.03) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(240,231,213,0.12);
+    border-top: 1px solid rgba(240,231,213,0.25);
+    border-radius: 28px;
+    box-shadow:
+        0 8px 32px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.glass-card:hover {
+    border-color: rgba(212,175,55,0.4);
+    box-shadow:
+        0 8px 40px rgba(212,175,55,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+/* ZENITH keeps its gold identity on top of the glass base */
+.glass-card.glass-card--zenith {
+    border: 1.5px solid rgba(212,175,55,0.5);
+    box-shadow:
+        0 0 40px rgba(212,175,55,0.15),
+        0 8px 32px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.glass-card.glass-card--zenith:hover {
+    border-color: rgba(212,175,55,0.7);
+    box-shadow:
+        0 0 60px rgba(212,175,55,0.25),
+        0 8px 40px rgba(212,175,55,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+@media (max-width: 768px) {
+    .glass-card {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+}
+
 /* ── Case card reveal ── */
 .case-card {
     opacity: 0;
@@ -113,6 +162,19 @@ html, body, #root {
     50%       { transform: translateX(-50%) translateY(8px); }
 }
 
+@media (max-width: 768px) {
+    .hero-tagline {
+        width: 100%;
+        text-align: center;
+        padding: 0 20px;
+        box-sizing: border-box;
+        letter-spacing: 2px;
+        transform: none;
+        margin-left: 0;
+        text-indent: 2px; /* compensate trailing letter-spacing gap so text re-centers */
+    }
+}
+
 /* ── ThreadLine mobile ── */
 .mobile-thread-track  { display: none; }
 .desktop-thread-track { display: block; }
@@ -120,6 +182,74 @@ html, body, #root {
 @media (max-width: 768px) {
     .desktop-thread-track { display: none !important; }
     .mobile-thread-track  { display: block !important; }
+}
+
+/* =========================================
+   NAV — floating glass pill
+   ========================================= */
+
+.nav-pill {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1100px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  border-radius: 100px;
+  background: rgba(10,14,26,0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(240,231,213,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  z-index: 1000;
+  transition: background 0.4s ease;
+}
+
+.nav-pill.scrolled {
+  background: rgba(10,14,26,0.75);
+}
+
+.nav-cta-btn {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #0A0E1A;
+  background: #D4AF37;
+  padding: 10px 24px;
+  border-radius: 100px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.nav-cta-btn:hover {
+  background: #F4C842;
+  box-shadow: 0 0 20px rgba(212,175,55,0.4);
+}
+
+/* ── Reusable 44px glass circle (hamburger / close buttons) ── */
+.glass-circle-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(240,231,213,0.08);
+  border: 1px solid rgba(240,231,213,0.15);
+  border-radius: 50%;
+  color: #F0E7D5;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.glass-circle-btn:hover {
+  border-color: rgba(212,175,55,0.4);
+  color: #D4AF37;
 }
 
 /* =========================================
@@ -134,12 +264,15 @@ html, body, #root {
   .hamburger-btn {
     display: flex !important;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 5px;
     cursor: pointer;
-    padding: 8px;
-    background: rgba(10, 14, 26, 0.75) !important;
-    border: 1px solid rgba(212, 175, 55, 0.4) !important;
-    border-radius: 4px;
+    width: 44px;
+    height: 44px;
+    background: rgba(240,231,213,0.08) !important;
+    border: 1px solid rgba(240,231,213,0.15) !important;
+    border-radius: 50%;
     position: fixed;
     top: 16px;
     right: 16px;
@@ -147,14 +280,15 @@ html, body, #root {
   }
 
   .hamburger-btn span {
-    width: 24px;
+    width: 18px;
     height: 2px;
     background: #F0E7D5;
     display: block;
     transition: all 0.3s ease;
   }
 
-  .desktop-nav-links {
+  .desktop-nav-links,
+  .nav-cta-btn {
     display: none !important;
   }
 }
@@ -175,13 +309,14 @@ html, body, #root {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(10, 14, 26, 0.98);
+  background: rgba(10,14,26,0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   z-index: 9998;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 48px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.4s ease;
@@ -190,6 +325,14 @@ html, body, #root {
 .mobile-menu-overlay.open {
   opacity: 1;
   pointer-events: auto;
+}
+
+.mobile-menu-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  padding: 56px 64px;
 }
 
 .mobile-menu-overlay a {
@@ -207,4 +350,14 @@ html, body, #root {
 .mobile-menu-overlay a:hover,
 .mobile-menu-overlay a:active {
   color: #D4AF37 !important;
+}
+
+@media (max-width: 480px) {
+  .mobile-menu-links {
+    padding: 40px 32px;
+    gap: 32px;
+  }
+  .mobile-menu-overlay a {
+    font-size: 2rem !important;
+  }
 }

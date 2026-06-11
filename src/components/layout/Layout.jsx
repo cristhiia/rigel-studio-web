@@ -23,9 +23,10 @@ const NAV_LINKS = [
 ];
 
 export default function Layout() {
-  const [isScrolled,   setIsScrolled]   = useState(false);
-  const [selectedCase, setSelectedCase] = useState(null);
-  const [menuOpen,     setMenuOpen]     = useState(false);
+  const [isScrolled,     setIsScrolled]     = useState(false);
+  const [selectedCase,   setSelectedCase]   = useState(null);
+  const [menuOpen,       setMenuOpen]       = useState(false);
+  const [easterEggOpen,  setEasterEggOpen]  = useState(false);
 
   // Lock body scroll when mobile menu open
   useEffect(() => {
@@ -36,10 +37,10 @@ export default function Layout() {
   useEffect(() => {
     // ── Lenis smooth scroll ───────────────────────────────────────────────
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 1.1,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smooth: true,
-      smoothTouch: false,
+      smoothWheel: true,
+      wheelMultiplier: 0.9,
     });
 
     // Sync Lenis → ScrollTrigger (spec-exact pattern)
@@ -59,14 +60,14 @@ export default function Layout() {
     gsap.to('.hero-logo', {
       y: -150,
       scale: 1.2,
-      opacity: 0.4,
-      filter: 'blur(2px)',
+      opacity: 0.3,
       ease: 'none',
       scrollTrigger: {
         trigger: '#inicio',
         start: 'top top',
         end: 'bottom top',
         scrub: 1.2,
+        onToggle: self => gsap.set('.hero-logo', { willChange: self.isActive ? 'transform, opacity' : 'auto' }),
       },
     });
     gsap.to('.hero-tagline', {
@@ -78,6 +79,7 @@ export default function Layout() {
         start: 'top top',
         end: 'bottom top',
         scrub: 1.2,
+        onToggle: self => gsap.set('.hero-tagline', { willChange: self.isActive ? 'transform, opacity' : 'auto' }),
       },
     });
 
@@ -164,7 +166,7 @@ export default function Layout() {
       <RigelBackground />
       <RigelJourney />
       <ThreadLine />
-      <EasterEgg />
+      <EasterEgg open={easterEggOpen} onClose={() => setEasterEggOpen(false)} />
 
       {/* ── Hamburger — mobile only, always visible ── */}
       <div
@@ -183,24 +185,22 @@ export default function Layout() {
         <div
           role="button"
           onClick={() => setMenuOpen(false)}
-          style={{
-            position: 'absolute', top: 24, right: 24,
-            width: 44, height: 44,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: '#F0E7D5', fontSize: '1.4rem',
-          }}
+          className="glass-circle-btn"
+          style={{ position: 'absolute', top: 24, right: 24, fontSize: '1.2rem' }}
         >
           ✕
         </div>
-        {NAV_LINKS.map(([label, href]) => (
-          <a
-            key={href}
-            href={href}
-            onClick={(e) => { e.preventDefault(); handleMobileNav(href); }}
-          >
-            {label}
-          </a>
-        ))}
+        <div className="glass-card mobile-menu-links">
+          {NAV_LINKS.map(([label, href]) => (
+            <a
+              key={href}
+              href={href}
+              onClick={(e) => { e.preventDefault(); handleMobileNav(href); }}
+            >
+              {label}
+            </a>
+          ))}
+        </div>
       </div>
 
       {/* Flash dorado entre secciones — z-50 */}
@@ -215,23 +215,19 @@ export default function Layout() {
 
       <div className="w-full relative">
 
-        {/* ── Nav fijo ─────────────────────────────────────────────────── */}
-        <nav
-          className="fixed top-0 left-0 w-full px-8 py-5 flex items-center justify-between pointer-events-none transition-all duration-500"
-          style={{
-            opacity: isScrolled ? 1 : 0,
-            zIndex: 9999,
-            background: 'rgba(10,14,26,0.85)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: '1px solid rgba(212,175,55,0.15)',
-          }}
-        >
-          <div className="flex items-baseline pointer-events-auto">
-            <span className="font-playfair font-bold text-3xl" style={{ color: '#F0E7D5' }}>R</span>
-            <span className="font-playfair font-bold text-2xl ml-1" style={{ color: '#D4AF37' }}>✦</span>
+        {/* ── Nav flotante tipo píldora ────────────────────────────────── */}
+        <nav className={`nav-pill ${isScrolled ? 'scrolled' : ''}`}>
+          <div className="flex items-baseline">
+            <span className="font-playfair font-bold text-2xl" style={{ color: '#F0E7D5' }}>R</span>
+            <span
+              onClick={() => setEasterEggOpen(true)}
+              className="font-playfair font-bold text-xl ml-1"
+              style={{ color: '#D4AF37', cursor: 'pointer' }}
+            >
+              ✦
+            </span>
           </div>
-          <div className="desktop-nav-links hidden md:flex items-center gap-8 pointer-events-auto">
+          <div className="desktop-nav-links hidden md:flex items-center gap-8">
             {[
               ['Inicio',          '#inicio'],
               ['Filosofía',       '#filosofia'],
@@ -246,16 +242,10 @@ export default function Layout() {
                 {label}
               </a>
             ))}
-            <a
-              href="#contacto"
-              className="font-montserrat text-sm px-6 py-2"
-              style={{ color: '#D4AF37', border: '1px solid rgba(212,175,55,0.5)', transition: 'all 0.3s ease' }}
-              onMouseEnter={e => { e.target.style.background = '#D4AF37'; e.target.style.color = '#0A0E1A'; }}
-              onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = '#D4AF37'; }}
-            >
-              Iniciar Proyecto
-            </a>
           </div>
+          <a href="#contacto" className="nav-cta-btn hidden md:inline-block">
+            Iniciar Proyecto
+          </a>
         </nav>
 
         {/* ── Modal de casos de estudio ─────────────────────────────────── */}
@@ -273,16 +263,8 @@ export default function Layout() {
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={{ y: 20, opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full shadow-2xl relative"
-                style={{
-                  maxWidth: '600px',
-                  padding: '40px',
-                  background: 'rgba(10,14,26,0.97)',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(212,175,55,0.3)',
-                  borderTop: '3px solid #D4AF37',
-                }}
+                className="glass-card w-full relative"
+                style={{ maxWidth: '600px', padding: '40px' }}
                 onClick={e => e.stopPropagation()}
               >
                 <button

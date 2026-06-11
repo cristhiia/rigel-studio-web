@@ -33,13 +33,7 @@ function NexusCard() {
     <motion.div
       variants={cardVariants}
       whileHover={{ y: -12, transition: { type: 'spring', stiffness: 300 } }}
-      className="card-nexus relative flex flex-col p-8 rounded-sm overflow-hidden"
-      style={{
-        background: 'rgba(240,231,213,0.06)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(212,175,55,0.2)',
-      }}
+      className="card-nexus glass-card relative flex flex-col p-8 overflow-hidden"
     >
       <div className="card-tag" style={{ color: '#3D5A80', fontSize: 10, letterSpacing: '0.4em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 12 }}>
         NIVEL 1
@@ -89,13 +83,7 @@ function VanguardCard() {
     <motion.div
       variants={cardVariants}
       whileHover={{ y: -12, transition: { type: 'spring', stiffness: 300 } }}
-      className="card-vanguard relative flex flex-col p-8 rounded-sm overflow-hidden"
-      style={{
-        background: 'rgba(240,231,213,0.06)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(212,175,55,0.15)',
-      }}
+      className="card-vanguard glass-card relative flex flex-col p-8 overflow-hidden"
     >
       <div className="card-tag" style={{ color: '#888888', fontSize: 10, letterSpacing: '0.4em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 12 }}>
         NIVEL 2 · PLATINO
@@ -147,12 +135,7 @@ function ZenithCard() {
     <motion.div
       variants={cardVariants}
       whileHover={{ y: -12, scale: 1.02, transition: { type: 'spring', stiffness: 300 } }}
-      className="card-zenith relative flex flex-col p-10 rounded-sm overflow-hidden"
-      style={{
-        background: 'linear-gradient(135deg, #0A0A0A 0%, #1A1A1A 100%)',
-        border: '2px solid #D4AF37',
-        boxShadow: '0 0 40px rgba(212,175,55,0.15), 0 20px 60px rgba(0,0,0,0.5)',
-      }}
+      className="card-zenith glass-card glass-card--zenith relative flex flex-col p-10 overflow-hidden"
     >
       {/* Gold corner accent */}
       <div style={{
