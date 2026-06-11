@@ -13,13 +13,16 @@ export default async function handler(req, res) {
 
   try {
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
+      host: 'smtp.zoho.com',
       port: 465,
       secure: true,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      tls: {
+        rejectUnauthorized: false
+      }
     })
 
     await transporter.sendMail({
@@ -43,6 +46,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true })
   } catch (error) {
     console.error('Error enviando email:', error)
+    console.error('SMTP Error:', error.message)
+    console.error('SMTP Error code:', error.code)
     return res.status(500).json({ error: 'Error al enviar el mensaje' })
   }
 }
