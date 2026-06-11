@@ -1,6 +1,12 @@
 import nodemailer from 'nodemailer'
 
 export default async function handler(req, res) {
+  console.log('ENV CHECK:', {
+    host: process.env.SMTP_HOST,
+    user: process.env.SMTP_USER,
+    hasPass: !!process.env.SMTP_PASS
+  })
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' })
   }
@@ -22,7 +28,6 @@ export default async function handler(req, res) {
         pass: process.env.SMTP_PASS,
       },
       tls: {
-        ciphers: 'SSLv3',
         rejectUnauthorized: false
       }
     })
