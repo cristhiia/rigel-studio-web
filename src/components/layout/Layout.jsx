@@ -28,11 +28,18 @@ export default function Layout() {
   const [menuOpen,       setMenuOpen]       = useState(false);
   const [easterEggOpen,  setEasterEggOpen]  = useState(false);
 
-  // Lock body scroll when mobile menu open
+  // Lock body scroll when mobile menu OR modal open
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    document.body.style.overflow = (menuOpen || selectedCase) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [menuOpen]);
+  }, [menuOpen, selectedCase]);
+
+  // Escape key closes modal
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') setSelectedCase(null); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, []);
 
   useEffect(() => {
     // ── Lenis smooth scroll ───────────────────────────────────────────────
@@ -253,73 +260,144 @@ export default function Layout() {
           {selectedCase && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.6 }}
-              className="fixed inset-0 flex items-center justify-center p-4"
-              style={{ zIndex: 60, background: 'rgba(0,5,20,0.85)', backdropFilter: 'blur(15px)' }}
+              transition={{ duration: 0.4 }}
+              style={{
+                position: 'fixed', inset: 0,
+                overflowY: 'auto', overflowX: 'hidden',
+                WebkitOverflowScrolling: 'touch',
+                zIndex: 9999,
+                background: 'rgba(0,5,20,0.90)',
+                backdropFilter: 'blur(15px)',
+              }}
               onClick={() => setSelectedCase(null)}
             >
-              <motion.div
-                initial={{ y: 50, opacity: 0, scale: 0.95 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: 20, opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="glass-card w-full relative"
-                style={{ maxWidth: '600px', padding: '40px' }}
-                onClick={e => e.stopPropagation()}
+              {/* Botón X — siempre visible en mobile */}
+              <button
+                onClick={() => setSelectedCase(null)}
+                style={{
+                  position: 'fixed', top: 16, right: 16,
+                  width: 48, height: 48,
+                  background: 'rgba(212,175,55,0.9)',
+                  borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: 'none', cursor: 'pointer',
+                  color: '#0A0E1A', fontSize: '1.4rem',
+                  zIndex: 99999,
+                  lineHeight: 1,
+                }}
               >
-                <button
-                  onClick={() => setSelectedCase(null)}
-                  className="absolute font-montserrat text-xs uppercase tracking-widest"
-                  style={{
-                    top: 20, right: 20,
-                    width: 40, height: 40,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'rgba(240,231,213,0.4)',
-                    background: 'rgba(240,231,213,0.04)',
-                    border: '1px solid rgba(240,231,213,0.15)',
-                    borderRadius: '50%',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    fontSize: '1rem',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#D4AF37'; e.currentTarget.style.borderColor = '#D4AF37'; e.currentTarget.style.background = 'rgba(212,175,55,0.1)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(240,231,213,0.4)'; e.currentTarget.style.borderColor = 'rgba(240,231,213,0.15)'; e.currentTarget.style.background = 'rgba(240,231,213,0.04)'; }}
+                ✕
+              </button>
+
+              {/* Centrado desktop / fullscreen mobile */}
+              <div
+                className="min-h-full flex items-start md:items-center justify-center"
+                style={{ padding: '80px 20px 40px' }}
+              >
+                <motion.div
+                  initial={{ y: 40, opacity: 0, scale: 0.96 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: 20, opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  className="glass-card w-full"
+                  style={{ maxWidth: '680px', padding: '36px 28px' }}
+                  onClick={e => e.stopPropagation()}
                 >
-                  ✕
-                </button>
-                <span className="font-montserrat text-xs uppercase tracking-[0.3em] mb-3 block" style={{ color: '#D4AF37' }}>
-                  {selectedCase.tag}
-                </span>
-                <h3 className="font-serif font-bold mb-8" style={{ fontSize: '2.5rem', color: '#F0E7D5', lineHeight: 1.15 }}>
-                  {selectedCase.title}
-                </h3>
-                <div className="grid md:grid-cols-2 gap-8" style={{ color: 'rgba(240,231,213,0.75)' }}>
-                  <div>
-                    <h4 className="font-montserrat font-bold uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.7rem', letterSpacing: '0.25em' }}>El Desafío</h4>
-                    <p style={{ fontSize: '1rem', lineHeight: 1.75 }}>{selectedCase.problem}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-montserrat font-bold uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.7rem', letterSpacing: '0.25em' }}>La Solución</h4>
-                    <p style={{ fontSize: '1rem', lineHeight: 1.75 }}>{selectedCase.solution}</p>
-                    <div className="mt-6 pt-6" style={{ borderTop: '1px solid rgba(212,175,55,0.15)' }}>
-                      <h4 className="font-montserrat font-bold uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.7rem', letterSpacing: '0.25em' }}>Resultado Táctico</h4>
-                      <p style={{ fontSize: '0.9rem', lineHeight: 1.75, fontStyle: 'italic', opacity: 0.7 }}>
-                        Implementación desplegada con éxito. Eficiencia operativa maximizada.
-                      </p>
+                  {/* Tag */}
+                  <span className="font-montserrat text-xs uppercase tracking-[0.3em] mb-3 block" style={{ color: '#D4AF37' }}>
+                    {selectedCase.tag}
+                  </span>
+
+                  {/* Título */}
+                  <h3 className="font-serif font-bold mb-6" style={{ fontSize: 'clamp(1.8rem, 5vw, 2.8rem)', color: '#F0E7D5', lineHeight: 1.15 }}>
+                    {selectedCase.title}
+                  </h3>
+
+                  {/* SECCIÓN 1 — Métricas */}
+                  {selectedCase.metrics && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 28 }}>
+                      {selectedCase.metrics.map((m, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            background: 'rgba(212,175,55,0.07)',
+                            border: '1px solid rgba(212,175,55,0.25)',
+                            borderRadius: 6,
+                            padding: '14px 10px',
+                            textAlign: 'center',
+                          }}
+                        >
+                          <div className="font-playfair font-bold" style={{ color: '#D4AF37', fontSize: 'clamp(0.85rem, 2.5vw, 1.05rem)', lineHeight: 1.2 }}>{m.value}</div>
+                          <div className="font-montserrat" style={{ color: 'rgba(240,231,213,0.45)', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: 5 }}>{m.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* SECCIÓN 2 — Problema / Solución */}
+                  <div style={{ borderTop: '1px solid rgba(212,175,55,0.15)', paddingTop: 24, marginBottom: 24 }}>
+                    <div className="grid md:grid-cols-2 gap-6" style={{ color: 'rgba(240,231,213,0.75)' }}>
+                      <div>
+                        <h4 className="font-montserrat font-bold uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.65rem', letterSpacing: '0.25em' }}>El Desafío</h4>
+                        <p style={{ fontSize: '0.95rem', lineHeight: 1.75 }}>{selectedCase.problem}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-montserrat font-bold uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.65rem', letterSpacing: '0.25em' }}>La Solución</h4>
+                        <p style={{ fontSize: '0.95rem', lineHeight: 1.75 }}>{selectedCase.solution}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="mt-10 text-center pt-8" style={{ borderTop: '1px solid rgba(212,175,55,0.15)' }}>
-                  <button
-                    className="font-montserrat uppercase tracking-widest font-semibold"
-                    style={{ background: '#D4AF37', color: '#0A0E1A', border: 'none', padding: '14px 40px', fontSize: '0.8rem', letterSpacing: '0.2em', cursor: 'pointer', transition: 'background 0.3s ease' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#F4C842'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#D4AF37'; }}
-                  >
-                    Solicitar Demo Exclusiva
-                  </button>
-                </div>
-              </motion.div>
+
+                  {/* SECCIÓN 3 — Stack tecnológico */}
+                  {selectedCase.stack && (
+                    <div style={{ borderTop: '1px solid rgba(212,175,55,0.15)', paddingTop: 20, marginBottom: 28 }}>
+                      <h4 className="font-montserrat font-bold uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.65rem', letterSpacing: '0.25em' }}>Stack Tecnológico</h4>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {selectedCase.stack.map((tech, i) => (
+                          <span
+                            key={i}
+                            className="font-montserrat"
+                            style={{
+                              border: '1px solid rgba(212,175,55,0.5)',
+                              color: '#D4AF37',
+                              padding: '4px 12px',
+                              fontSize: '0.72rem',
+                              borderRadius: 4,
+                              letterSpacing: '0.05em',
+                            }}
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SECCIÓN 4 — CTA */}
+                  <div style={{ textAlign: 'center', paddingTop: 8 }}>
+                    <button
+                      className="font-montserrat uppercase tracking-widest font-semibold"
+                      style={{
+                        background: '#D4AF37', color: '#0A0E1A',
+                        border: 'none', padding: '14px 40px',
+                        fontSize: '0.8rem', letterSpacing: '0.2em',
+                        cursor: 'pointer', transition: 'background 0.3s ease',
+                        width: '100%', maxWidth: 320,
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#F4C842'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#D4AF37'; }}
+                      onClick={() => {
+                        setSelectedCase(null);
+                        setTimeout(() => {
+                          document.querySelector('#contacto')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 300);
+                      }}
+                    >
+                      ¿Querés algo así?
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

@@ -9,7 +9,13 @@ const projects = [
     shortDescription: 'Ecosistema Fintech. Convergencia perfecta entre hardware de billetera inteligente y software de gestión.',
     buttonText: 'Explorar Arquitectura',
     problem: 'Falta de educación financiera y herramientas de gestión desconectadas de la realidad del usuario.',
-    solution: 'Desarrollo de un gestor de gastos con un coach financiero de tono argentino que detecta patrones de consumo y se adapta a las etapas de vida del usuario.'
+    solution: 'Desarrollo de un gestor de gastos con un coach financiero de tono argentino que detecta patrones de consumo y se adapta a las etapas de vida del usuario.',
+    metrics: [
+      { value: '3 meses', label: 'Desarrollo' },
+      { value: 'React Native', label: 'Plataforma' },
+      { value: 'IA integrada', label: 'Diferencial' },
+    ],
+    stack: ['React Native', 'Expo', 'Supabase', 'Anthropic API', 'Google Play'],
   },
   {
     id: 2,
@@ -18,7 +24,13 @@ const projects = [
     shortDescription: 'Desarrollo móvil premium. Algoritmos de recomendación en tiempo real para el ecosistema vitivinícola.',
     buttonText: 'Ver Despliegue',
     problem: 'Dificultad para elegir el vino perfecto para cada comida en el mercado de San Juan, Argentina.',
-    solution: 'Desarrollo de una interfaz minimalista e integración de un motor de recomendaciones precisas basadas en maridaje.'
+    solution: 'Desarrollo de una interfaz minimalista e integración de un motor de recomendaciones precisas basadas en maridaje.',
+    metrics: [
+      { value: '2 meses', label: 'Desarrollo' },
+      { value: 'Algoritmo propio', label: 'Motor' },
+      { value: 'App móvil', label: 'Resultado' },
+    ],
+    stack: ['React Native', 'Expo', 'Supabase', 'Machine Learning'],
   },
   {
     id: 3,
@@ -27,8 +39,14 @@ const projects = [
     shortDescription: 'Arquitectura de interfaces y sistemas con integración IA para máxima eficiencia industrial.',
     buttonText: 'Ver Detalles',
     problem: 'Cuellos de botella en el diagnóstico y gestión operativa de mantenimiento.',
-    solution: 'Arquitectura de interfaz orientada a la eficiencia operativa e integración de diagnóstico asistido, reduciendo el margen de error técnico.'
-  }
+    solution: 'Arquitectura de interfaz orientada a la eficiencia operativa e integración de diagnóstico asistido, reduciendo el margen de error técnico.',
+    metrics: [
+      { value: '4 semanas', label: 'Desarrollo' },
+      { value: 'Multi-usuario', label: 'Arquitectura' },
+      { value: 'Sistema completo', label: 'Alcance' },
+    ],
+    stack: ['React', 'Node.js', 'Supabase', 'Vercel'],
+  },
 ];
 
 export default function Cases({ onSelectCase }) {
