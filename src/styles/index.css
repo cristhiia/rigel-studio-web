@@ -361,3 +361,21 @@ html, body, #root {
     font-size: 2rem !important;
   }
 }
+
+/* ── Modal — métricas responsive ── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .metric-card:last-child {
+    grid-column: 1 / -1;
+  }
+}

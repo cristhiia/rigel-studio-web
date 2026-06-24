@@ -271,28 +271,10 @@ export default function Layout() {
               }}
               onClick={() => setSelectedCase(null)}
             >
-              {/* Botón X — siempre visible en mobile */}
-              <button
-                onClick={() => setSelectedCase(null)}
-                style={{
-                  position: 'fixed', top: 16, right: 16,
-                  width: 48, height: 48,
-                  background: 'rgba(212,175,55,0.9)',
-                  borderRadius: '50%',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: 'none', cursor: 'pointer',
-                  color: '#0A0E1A', fontSize: '1.4rem',
-                  zIndex: 99999,
-                  lineHeight: 1,
-                }}
-              >
-                ✕
-              </button>
-
               {/* Centrado desktop / fullscreen mobile */}
               <div
                 className="min-h-full flex items-start md:items-center justify-center"
-                style={{ padding: '80px 20px 40px' }}
+                style={{ padding: '20px 20px 40px' }}
               >
                 <motion.div
                   initial={{ y: 40, opacity: 0, scale: 0.96 }}
@@ -300,9 +282,31 @@ export default function Layout() {
                   exit={{ y: 20, opacity: 0, scale: 0.96 }}
                   transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                   className="glass-card w-full"
-                  style={{ maxWidth: '680px', padding: '36px 28px' }}
+                  style={{ maxWidth: '680px', padding: '28px 28px' }}
                   onClick={e => e.stopPropagation()}
                 >
+                  {/* Botón X — dentro del card, alineado a la derecha */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                    <button
+                      onClick={() => setSelectedCase(null)}
+                      style={{
+                        width: 40, height: 40,
+                        background: 'rgba(212,175,55,0.15)',
+                        border: '1px solid rgba(212,175,55,0.4)',
+                        borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: '#D4AF37', fontSize: '1rem',
+                        transition: 'all 0.2s ease',
+                        flexShrink: 0,
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.3)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.15)'; }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
                   {/* Tag */}
                   <span className="font-montserrat text-xs uppercase tracking-[0.3em] mb-3 block" style={{ color: '#D4AF37' }}>
                     {selectedCase.tag}
@@ -315,10 +319,11 @@ export default function Layout() {
 
                   {/* SECCIÓN 1 — Métricas */}
                   {selectedCase.metrics && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 28 }}>
+                    <div className="metrics-grid" style={{ marginBottom: 28 }}>
                       {selectedCase.metrics.map((m, i) => (
                         <div
                           key={i}
+                          className="metric-card"
                           style={{
                             background: 'rgba(212,175,55,0.07)',
                             border: '1px solid rgba(212,175,55,0.25)',
