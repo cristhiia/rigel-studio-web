@@ -414,6 +414,18 @@ export default function Layout() {
           <Hero isScrolled={isScrolled} />
         </section>
 
+        <section id="tecnologias" className="fade-section w-full relative" style={{ zIndex: 10 }}>
+          <TechStack />
+        </section>
+
+        <section id="faq" className="fade-section w-full relative" style={{ zIndex: 10 }}>
+          <FAQ />
+        </section>
+
+        <section id="contacto" className="fade-section w-full relative" style={{ zIndex: 10 }}>
+          <Contact />
+        </section>
+
         <section id="filosofia" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
           <Philosophy />
         </section>
@@ -422,16 +434,8 @@ export default function Layout() {
           <Cases onSelectCase={setSelectedCase} />
         </section>
 
-        <section id="tecnologias" className="fade-section w-full relative" style={{ zIndex: 10 }}>
-          <TechStack />
-        </section>
-
         <section id="planes" className="fade-section w-full relative" style={{ zIndex: 10 }}>
           <MembershipSection />
-        </section>
-
-        <section id="faq" className="fade-section w-full relative" style={{ zIndex: 10 }}>
-          <FAQ />
         </section>
 
         {/* CTA transitional — gradient sweep animation */}
@@ -449,10 +453,6 @@ export default function Layout() {
           >
             Iniciando convergencia.
           </p>
-        </section>
-
-        <section id="contacto" className="fade-section w-full relative" style={{ zIndex: 10 }}>
-          <Contact />
         </section>
       </div>
     </>
