@@ -14,6 +14,7 @@ import RigelBackground from '../canvas/RigelBackground';
 import ThreadLine from '../effects/ThreadLine';
 import EasterEgg from '../effects/EasterEgg';
 import RigelJourney from '../effects/RigelJourney';
+import Footer from './Footer';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -472,6 +473,8 @@ export default function Layout() {
             Iniciando convergencia.
           </p>
         </section>
+
+        <Footer />
       </div>
     </>
   );
