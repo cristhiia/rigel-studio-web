@@ -140,11 +140,16 @@ function VanguardCard() {
 /* ── ZENITH MODAL ───────────────────────────────────────────────────────────── */
 function ZenithModal({ onClose }) {
   useEffect(() => {
+    // Mobile-safe body lock
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
       document.removeEventListener('keydown', onKey);
     };
   }, [onClose]);
@@ -169,21 +174,52 @@ function ZenithModal({ onClose }) {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 9999,
+        zIndex: 9998,
         background: 'rgba(0,0,0,0.92)',
         backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '24px',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
       }}
     >
+      {/* Botón cerrar — fixed para que no se pierda en mobile */}
+      <button
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          top: 16,
+          right: 16,
+          width: 44,
+          height: 44,
+          borderRadius: '50%',
+          background: 'rgba(212,175,55,0.15)',
+          border: '1px solid rgba(212,175,55,0.4)',
+          color: '#D4AF37',
+          fontSize: '1rem',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          transition: 'background 0.2s ease',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(212,175,55,0.3)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(212,175,55,0.15)'; }}
+      >
+        ✕
+      </button>
+
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         onClick={(e) => e.stopPropagation()}
+        className="zenith-modal-container"
         style={{
           maxWidth: 560,
           width: '100%',
@@ -193,37 +229,8 @@ function ZenithModal({ onClose }) {
           padding: '48px 40px',
           position: 'relative',
           boxShadow: '0 0 60px rgba(212,175,55,0.15), 0 0 120px rgba(212,175,55,0.05)',
-          maxHeight: '90vh',
-          overflowY: 'auto',
         }}
       >
-        {/* Botón cerrar */}
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: 20,
-            right: 20,
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            background: 'rgba(212,175,55,0.1)',
-            border: '1px solid rgba(212,175,55,0.3)',
-            color: '#D4AF37',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10,
-            transition: 'background 0.2s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(212,175,55,0.25)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(212,175,55,0.1)'; }}
-        >
-          ✕
-        </button>
-
         {/* Contenido */}
         <div style={{ textAlign: 'center' }}>
 
@@ -269,7 +276,7 @@ function ZenithModal({ onClose }) {
           {/* Separador */}
           <div style={{ borderTop: '1px solid rgba(212,175,55,0.15)', marginBottom: 28 }} />
 
-          {/* Lista de beneficios */}
+          {/* Lista */}
           <div style={{ maxWidth: 320, margin: '0 auto', textAlign: 'left', marginBottom: 28 }}>
             {[
               'Welcome Box físico personalizado',
@@ -281,10 +288,7 @@ function ZenithModal({ onClose }) {
             ].map((item) => (
               <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
                 <span style={{ color: '#D4AF37', flexShrink: 0, marginTop: 2 }}>✦</span>
-                <span
-                  className="font-montserrat"
-                  style={{ color: 'rgba(240,231,213,0.8)', fontSize: '0.9rem', lineHeight: 2 }}
-                >
+                <span className="font-montserrat" style={{ color: 'rgba(240,231,213,0.8)', fontSize: '0.9rem', lineHeight: 2 }}>
                   {item}
                 </span>
               </div>
@@ -295,14 +299,11 @@ function ZenithModal({ onClose }) {
           <div style={{ borderTop: '1px solid rgba(212,175,55,0.15)', marginBottom: 24 }} />
 
           {/* Precio */}
-          <p
-            className="font-montserrat font-bold"
-            style={{ color: '#D4AF37', fontSize: '1.3rem', marginBottom: 24 }}
-          >
+          <p className="font-montserrat font-bold" style={{ color: '#D4AF37', fontSize: '1.3rem', marginBottom: 24 }}>
             desde $2.500.000 ARS
           </p>
 
-          {/* Botón principal */}
+          {/* Botón */}
           <button
             onClick={handleApply}
             className="font-montserrat"
@@ -321,23 +322,14 @@ function ZenithModal({ onClose }) {
               marginBottom: 16,
               transition: 'all 0.3s ease',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#F4C842';
-              e.currentTarget.style.transform = 'scale(1.02)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#D4AF37';
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#F4C842'; e.currentTarget.style.transform = 'scale(1.02)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#D4AF37'; e.currentTarget.style.transform = 'scale(1)'; }}
           >
             Quiero aplicar a Zenith
           </button>
 
           {/* Texto chico */}
-          <p
-            className="font-montserrat"
-            style={{ color: 'rgba(240,231,213,0.4)', fontSize: '0.75rem' }}
-          >
+          <p className="font-montserrat" style={{ color: 'rgba(240,231,213,0.4)', fontSize: '0.75rem' }}>
             La primera conversación es sin costo y sin compromiso.
           </p>
         </div>
@@ -347,6 +339,21 @@ function ZenithModal({ onClose }) {
         @keyframes zenith-pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50%       { opacity: 0.65; transform: scale(1.12); }
+        }
+        @media (max-width: 768px) {
+          .zenith-modal-container {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            border-radius: 0 !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding: 80px 24px 48px 24px !important;
+            border: none !important;
+            border-top: 2px solid rgba(212,175,55,0.6) !important;
+          }
         }
       `}</style>
     </motion.div>
@@ -420,6 +427,16 @@ function ZenithCard({ onOpenModal }) {
 export default function MembershipSection() {
   const [zenithOpen, setZenithOpen] = useState(false);
 
+  const openZenith = () => {
+    setZenithOpen(true);
+    window.dispatchEvent(new CustomEvent('zenithModalOpen'));
+  };
+
+  const closeZenith = () => {
+    setZenithOpen(false);
+    window.dispatchEvent(new CustomEvent('zenithModalClose'));
+  };
+
   return (
     <div className="relative w-full min-h-screen flex items-center justify-center py-32 overflow-hidden" style={{ zIndex: 10 }}>
       <div className="w-full max-w-6xl mx-auto px-6">
@@ -441,12 +458,12 @@ export default function MembershipSection() {
         >
           <NexusCard />
           <VanguardCard />
-          <ZenithCard onOpenModal={() => setZenithOpen(true)} />
+          <ZenithCard onOpenModal={openZenith} />
         </motion.div>
       </div>
 
       <AnimatePresence>
-        {zenithOpen && <ZenithModal onClose={() => setZenithOpen(false)} />}
+        {zenithOpen && <ZenithModal onClose={closeZenith} />}
       </AnimatePresence>
     </div>
   );

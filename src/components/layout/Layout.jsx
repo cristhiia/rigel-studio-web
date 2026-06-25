@@ -17,11 +17,20 @@ import RigelJourney from '../effects/RigelJourney';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const NAV_LINKS = [
-  ['Inicio',           '#inicio'],
-  ['Filosofía',        '#filosofia'],
-  ['Casos de Estudio', '#casos'],
-  ['Iniciar Proyecto', '#contacto'],
+const NAV_DESKTOP = [
+  ['Inicio',    '#inicio'],
+  ['Nosotros',  '#filosofia'],
+  ['Servicios', '#casos'],
+  ['Contacto',  '#contacto'],
+];
+
+const NAV_MOBILE = [
+  ['Inicio',               '#inicio'],
+  ['Nosotros',             '#filosofia'],
+  ['Servicios',            '#casos'],
+  ['Contacto',             '#contacto'],
+  ['Tecnologías',          '#tecnologias'],
+  ['Preguntas frecuentes', '#faq'],
 ];
 
 export default function Layout() {
@@ -29,6 +38,18 @@ export default function Layout() {
   const [selectedCase,   setSelectedCase]   = useState(null);
   const [menuOpen,       setMenuOpen]       = useState(false);
   const [easterEggOpen,  setEasterEggOpen]  = useState(false);
+  const [zenithOpen,     setZenithOpen]     = useState(false);
+
+  useEffect(() => {
+    const onOpen  = () => setZenithOpen(true);
+    const onClose = () => setZenithOpen(false);
+    window.addEventListener('zenithModalOpen',  onOpen);
+    window.addEventListener('zenithModalClose', onClose);
+    return () => {
+      window.removeEventListener('zenithModalOpen',  onOpen);
+      window.removeEventListener('zenithModalClose', onClose);
+    };
+  }, []);
 
   // Lock body scroll when mobile menu OR modal open
   useEffect(() => {
@@ -177,12 +198,13 @@ export default function Layout() {
       <ThreadLine />
       <EasterEgg open={easterEggOpen} onClose={() => setEasterEggOpen(false)} />
 
-      {/* ── Hamburger — mobile only, always visible ── */}
+      {/* ── Hamburger — mobile only, hidden when Zenith modal open ── */}
       <div
         className="hamburger-btn"
         onClick={() => setMenuOpen(prev => !prev)}
         role="button"
         aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+        style={{ display: zenithOpen ? 'none' : undefined }}
       >
         <span />
         <span style={{ opacity: menuOpen ? 0 : 1, transform: menuOpen ? 'scaleX(0)' : 'scaleX(1)' }} />
@@ -200,7 +222,7 @@ export default function Layout() {
           ✕
         </div>
         <div className="glass-card mobile-menu-links">
-          {NAV_LINKS.map(([label, href]) => (
+          {NAV_MOBILE.map(([label, href]) => (
             <a
               key={href}
               href={href}
@@ -237,11 +259,7 @@ export default function Layout() {
             </span>
           </div>
           <div className="desktop-nav-links hidden md:flex items-center gap-8">
-            {[
-              ['Inicio',          '#inicio'],
-              ['Filosofía',       '#filosofia'],
-              ['Casos de Estudio','#casos'],
-            ].map(([label, href]) => (
+            {NAV_DESKTOP.map(([label, href]) => (
               <a key={href} href={href}
                 className="font-montserrat text-sm transition-colors"
                 style={{ color: '#F0E7D5' }}
@@ -414,6 +432,18 @@ export default function Layout() {
           <Hero isScrolled={isScrolled} />
         </section>
 
+        <section id="filosofia" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
+          <Philosophy />
+        </section>
+
+        <section id="casos" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
+          <Cases onSelectCase={setSelectedCase} />
+        </section>
+
+        <section id="planes" className="fade-section w-full relative" style={{ zIndex: 10 }}>
+          <MembershipSection />
+        </section>
+
         <section id="tecnologias" className="fade-section w-full relative" style={{ zIndex: 10 }}>
           <TechStack />
         </section>
@@ -424,18 +454,6 @@ export default function Layout() {
 
         <section id="contacto" className="fade-section w-full relative" style={{ zIndex: 10 }}>
           <Contact />
-        </section>
-
-        <section id="planes" className="fade-section w-full relative" style={{ zIndex: 10 }}>
-          <MembershipSection />
-        </section>
-
-        <section id="filosofia" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
-          <Philosophy />
-        </section>
-
-        <section id="casos" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
-          <Cases onSelectCase={setSelectedCase} />
         </section>
 
         {/* CTA transitional — gradient sweep animation */}
