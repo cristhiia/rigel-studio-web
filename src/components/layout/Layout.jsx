@@ -426,16 +426,16 @@ export default function Layout() {
           <Contact />
         </section>
 
+        <section id="planes" className="fade-section w-full relative" style={{ zIndex: 10 }}>
+          <MembershipSection />
+        </section>
+
         <section id="filosofia" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
           <Philosophy />
         </section>
 
         <section id="casos" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
           <Cases onSelectCase={setSelectedCase} />
-        </section>
-
-        <section id="planes" className="fade-section w-full relative" style={{ zIndex: 10 }}>
-          <MembershipSection />
         </section>
 
         {/* CTA transitional — gradient sweep animation */}

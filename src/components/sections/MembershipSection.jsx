@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -10,7 +10,6 @@ const cardVariants = {
   show: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 80, damping: 18 } },
 };
 
-// ── Price display: "desde" pequeño + monto + "ARS" discreto ──────────────────
 function PriceDisplay({ amount, color = '#F0E7D5' }) {
   return (
     <div className="flex items-baseline gap-2 flex-wrap">
@@ -27,7 +26,14 @@ function PriceDisplay({ amount, color = '#F0E7D5' }) {
   );
 }
 
-// ── NEXUS card ───────────────────────────────────────────────────────────────
+function scrollToContact(tab) {
+  document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' });
+  setTimeout(() => {
+    window.dispatchEvent(new CustomEvent('openContactTab', { detail: { tab } }));
+  }, 600);
+}
+
+/* ── NEXUS ──────────────────────────────────────────────────────────────────── */
 function NexusCard() {
   return (
     <motion.div
@@ -68,6 +74,7 @@ function NexusCard() {
       <button
         className="font-montserrat text-sm flex items-center gap-3 transition-all duration-300"
         style={{ color: '#D4AF37', letterSpacing: '0.15em' }}
+        onClick={() => scrollToContact('idea')}
         onMouseEnter={e => e.currentTarget.style.color = '#F4C842'}
         onMouseLeave={e => e.currentTarget.style.color = '#D4AF37'}
       >
@@ -77,7 +84,7 @@ function NexusCard() {
   );
 }
 
-// ── VANGUARD card ────────────────────────────────────────────────────────────
+/* ── VANGUARD ───────────────────────────────────────────────────────────────── */
 function VanguardCard() {
   return (
     <motion.div
@@ -120,17 +127,234 @@ function VanguardCard() {
       <button
         className="font-montserrat text-sm flex items-center gap-3 transition-all duration-300"
         style={{ color: '#D4AF37', letterSpacing: '0.15em' }}
+        onClick={() => scrollToContact('cotizacion')}
         onMouseEnter={e => e.currentTarget.style.color = '#F4C842'}
         onMouseLeave={e => e.currentTarget.style.color = '#D4AF37'}
       >
-        Solicitar Acceso <span style={{ fontSize: '1rem' }}>→</span>
+        Solicitar propuesta <span style={{ fontSize: '1rem' }}>→</span>
       </button>
     </motion.div>
   );
 }
 
-// ── ZENITH card — única tarjeta oscura ───────────────────────────────────────
-function ZenithCard() {
+/* ── ZENITH MODAL ───────────────────────────────────────────────────────────── */
+function ZenithModal({ onClose }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  const handleApply = () => {
+    onClose();
+    setTimeout(() => {
+      document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('openContactTab', { detail: { tab: 'cotizacion' } }));
+      }, 600);
+    }, 300);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        background: 'rgba(0,0,0,0.92)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: 560,
+          width: '100%',
+          background: 'linear-gradient(135deg, #0A0A0A, #111111)',
+          border: '1.5px solid rgba(212,175,55,0.6)',
+          borderRadius: 28,
+          padding: '48px 40px',
+          position: 'relative',
+          boxShadow: '0 0 60px rgba(212,175,55,0.15), 0 0 120px rgba(212,175,55,0.05)',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+        }}
+      >
+        {/* Botón cerrar */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: 20,
+            right: 20,
+            width: 44,
+            height: 44,
+            borderRadius: '50%',
+            background: 'rgba(212,175,55,0.1)',
+            border: '1px solid rgba(212,175,55,0.3)',
+            color: '#D4AF37',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            transition: 'background 0.2s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(212,175,55,0.25)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(212,175,55,0.1)'; }}
+        >
+          ✕
+        </button>
+
+        {/* Contenido */}
+        <div style={{ textAlign: 'center' }}>
+
+          {/* Estrella pulse */}
+          <div
+            style={{
+              fontSize: '2rem',
+              color: '#D4AF37',
+              marginBottom: 16,
+              animation: 'zenith-pulse 2.5s ease-in-out infinite',
+            }}
+          >
+            ✦
+          </div>
+
+          {/* Label */}
+          <p
+            className="font-montserrat uppercase"
+            style={{ color: '#D4AF37', fontSize: '0.7rem', letterSpacing: '0.4em', marginBottom: 12 }}
+          >
+            Membresía Exclusiva
+          </p>
+
+          {/* Título */}
+          <h2
+            className="font-montserrat font-bold"
+            style={{ color: '#D4AF37', fontSize: '2.8rem', lineHeight: 1, marginBottom: 20 }}
+          >
+            ZENITH
+          </h2>
+
+          {/* Línea */}
+          <div style={{ width: 80, height: 1, background: 'rgba(212,175,55,0.5)', margin: '0 auto 20px' }} />
+
+          {/* Subtexto */}
+          <p
+            className="font-montserrat italic"
+            style={{ color: 'rgba(240,231,213,0.7)', marginBottom: 32 }}
+          >
+            Acceso por invitación o méritos del negocio.
+          </p>
+
+          {/* Separador */}
+          <div style={{ borderTop: '1px solid rgba(212,175,55,0.15)', marginBottom: 28 }} />
+
+          {/* Lista de beneficios */}
+          <div style={{ maxWidth: 320, margin: '0 auto', textAlign: 'left', marginBottom: 28 }}>
+            {[
+              'Welcome Box físico personalizado',
+              'Manifiesto impreso y firmado a mano',
+              'WhatsApp directo con el fundador',
+              'SLA garantizado menor a 2 horas',
+              'Cena de las Estrellas anual',
+              'Roadmap personalizado anual',
+            ].map((item) => (
+              <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+                <span style={{ color: '#D4AF37', flexShrink: 0, marginTop: 2 }}>✦</span>
+                <span
+                  className="font-montserrat"
+                  style={{ color: 'rgba(240,231,213,0.8)', fontSize: '0.9rem', lineHeight: 2 }}
+                >
+                  {item}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Separador */}
+          <div style={{ borderTop: '1px solid rgba(212,175,55,0.15)', marginBottom: 24 }} />
+
+          {/* Precio */}
+          <p
+            className="font-montserrat font-bold"
+            style={{ color: '#D4AF37', fontSize: '1.3rem', marginBottom: 24 }}
+          >
+            desde $2.500.000 ARS
+          </p>
+
+          {/* Botón principal */}
+          <button
+            onClick={handleApply}
+            className="font-montserrat"
+            style={{
+              background: '#D4AF37',
+              color: '#0A0A0A',
+              fontWeight: 700,
+              padding: '16px 40px',
+              borderRadius: 100,
+              border: 'none',
+              width: '100%',
+              fontSize: '0.85rem',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              marginBottom: 16,
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#F4C842';
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#D4AF37';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            Quiero aplicar a Zenith
+          </button>
+
+          {/* Texto chico */}
+          <p
+            className="font-montserrat"
+            style={{ color: 'rgba(240,231,213,0.4)', fontSize: '0.75rem' }}
+          >
+            La primera conversación es sin costo y sin compromiso.
+          </p>
+        </div>
+      </motion.div>
+
+      <style>{`
+        @keyframes zenith-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.65; transform: scale(1.12); }
+        }
+      `}</style>
+    </motion.div>
+  );
+}
+
+/* ── ZENITH CARD ────────────────────────────────────────────────────────────── */
+function ZenithCard({ onOpenModal }) {
   return (
     <motion.div
       variants={cardVariants}
@@ -178,10 +402,11 @@ function ZenithCard() {
       <button
         className="font-montserrat text-sm font-bold uppercase tracking-widest py-4 px-8 rounded-sm transition-all duration-400 mb-4"
         style={{ background: '#D4AF37', color: '#0A0A0A', letterSpacing: '0.2em' }}
+        onClick={onOpenModal}
         onMouseEnter={e => { e.currentTarget.style.background = '#F0C84A'; e.currentTarget.style.boxShadow = '0 0 30px rgba(212,175,55,0.4)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = '#D4AF37'; e.currentTarget.style.boxShadow = 'none'; }}
       >
-        Aplicar a Zenith
+        Aplicar a Zenith →
       </button>
 
       <p className="font-montserrat text-center" style={{ color: 'rgba(240,231,213,0.40)', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
@@ -191,12 +416,13 @@ function ZenithCard() {
   );
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+/* ── MAIN ───────────────────────────────────────────────────────────────────── */
 export default function MembershipSection() {
+  const [zenithOpen, setZenithOpen] = useState(false);
+
   return (
     <div className="relative w-full min-h-screen flex items-center justify-center py-32 overflow-hidden" style={{ zIndex: 10 }}>
       <div className="w-full max-w-6xl mx-auto px-6">
-        {/* Section header */}
         <div className="text-center mb-16">
           <p className="font-montserrat text-[10px] uppercase tracking-[0.4em] mb-4" style={{ color: '#D4AF37' }}>
             Niveles de Colaboración
@@ -206,7 +432,6 @@ export default function MembershipSection() {
           </h2>
         </div>
 
-        {/* Cards grid */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -216,9 +441,13 @@ export default function MembershipSection() {
         >
           <NexusCard />
           <VanguardCard />
-          <ZenithCard />
+          <ZenithCard onOpenModal={() => setZenithOpen(true)} />
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {zenithOpen && <ZenithModal onClose={() => setZenithOpen(false)} />}
+      </AnimatePresence>
     </div>
   );
 }

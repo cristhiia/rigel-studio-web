@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 /* ── Shared styles ───────────────────────────────────────────────── */
@@ -464,6 +464,12 @@ const TABS = [
 export default function Contact() {
   const [activeTab, setActiveTab] = useState('idea');
   const [successType, setSuccessType] = useState(null);
+
+  useEffect(() => {
+    const handler = (e) => setActiveTab(e.detail.tab);
+    window.addEventListener('openContactTab', handler);
+    return () => window.removeEventListener('openContactTab', handler);
+  }, []);
 
   const handleSuccess = (tipo) => setSuccessType(tipo);
   const handleReset = () => setSuccessType(null);
