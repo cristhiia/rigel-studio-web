@@ -40,6 +40,36 @@ export default function Hero({ isScrolled }) {
         Software que entiende tu negocio
       </p>
 
+      {/* ── hero CTA ── */}
+      <button
+        className="hero-cta font-montserrat"
+        onClick={() => document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' })}
+        style={{
+          background: '#D4AF37',
+          color: '#0A0E1A',
+          fontWeight: 600,
+          padding: '14px 32px',
+          borderRadius: 100,
+          border: 'none',
+          fontSize: '0.85rem',
+          letterSpacing: '2px',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          marginTop: 32,
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = '#F4C842';
+          e.currentTarget.style.transform = 'scale(1.03)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = '#D4AF37';
+          e.currentTarget.style.transform = 'scale(1)';
+        }}
+      >
+        Iniciá tu proyecto ✦
+      </button>
+
       {/* ── scroll-indicator ── */}
       <div className="scroll-indicator absolute bottom-12 left-1/2 flex flex-col items-center gap-2 pointer-events-none"
         style={{ transform: 'translateX(-50%)' }}

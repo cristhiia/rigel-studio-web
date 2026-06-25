@@ -6,7 +6,9 @@ import Lenis from '@studio-freight/lenis';
 import Hero from '../sections/Hero';
 import Philosophy from '../sections/Philosophy';
 import Cases from '../sections/Cases';
+import TechStack from '../sections/TechStack';
 import MembershipSection from '../sections/MembershipSection';
+import FAQ from '../sections/FAQ';
 import Contact from '../sections/Contact';
 import RigelBackground from '../canvas/RigelBackground';
 import ThreadLine from '../effects/ThreadLine';
@@ -104,7 +106,7 @@ export default function Layout() {
     const flashObs = new IntersectionObserver((entries) => {
       entries.forEach(e => { if (e.isIntersecting) fireFlash(); });
     }, { threshold: 0.15 });
-    ['#filosofia', '#casos', '#planes', '#contacto'].forEach(id => {
+    ['#filosofia', '#casos', '#tecnologias', '#planes', '#faq', '#contacto'].forEach(id => {
       const el = document.querySelector(id);
       if (el) flashObs.observe(el);
     });
@@ -420,8 +422,16 @@ export default function Layout() {
           <Cases onSelectCase={setSelectedCase} />
         </section>
 
+        <section id="tecnologias" className="fade-section w-full relative" style={{ zIndex: 10 }}>
+          <TechStack />
+        </section>
+
         <section id="planes" className="fade-section w-full relative" style={{ zIndex: 10 }}>
           <MembershipSection />
+        </section>
+
+        <section id="faq" className="fade-section w-full relative" style={{ zIndex: 10 }}>
+          <FAQ />
         </section>
 
         {/* CTA transitional — gradient sweep animation */}
@@ -441,7 +451,7 @@ export default function Layout() {
           </p>
         </section>
 
-        <section id="contacto" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
+        <section id="contacto" className="fade-section w-full relative" style={{ zIndex: 10 }}>
           <Contact />
         </section>
       </div>
