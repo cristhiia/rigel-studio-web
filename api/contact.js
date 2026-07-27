@@ -75,16 +75,13 @@ export default async function handler(req, res) {
 
   try {
     const transporter = nodemailer.createTransport({
-      host: 'smtp.zoho.com',
+      host: process.env.SMTP_HOST,
       port: 587,
       secure: false,
       requireTLS: true,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
       },
     })
 
