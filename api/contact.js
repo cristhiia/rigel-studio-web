@@ -85,13 +85,18 @@ export default async function handler(req, res) {
       },
     })
 
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"Rigel Studio Web" <${process.env.SMTP_USER}>`,
-      to: process.env.SMTP_USER,
+      to: process.env.CONTACT_TO_EMAIL || process.env.SMTP_USER,
       replyTo: email,
       subject,
       html: buildHtml(data),
     })
+
+    console.log('Correo enviado - messageId:', info.messageId)
+    console.log('Correo enviado - response:', info.response)
+    console.log('Correo enviado - accepted:', JSON.stringify(info.accepted))
+    console.log('Correo enviado - rejected:', JSON.stringify(info.rejected))
 
     return res.status(200).json({ ok: true })
   } catch (error) {
