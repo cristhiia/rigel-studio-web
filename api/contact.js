@@ -4,12 +4,22 @@ const HEADER_COLORS = {
   idea:       '#1a2340',
   cotizacion: '#7a5c00',
   consulta:   '#2a2a2a',
+  arrepentimiento: '#7a1f1f',
 }
 
 const HEADER_LABELS = {
   idea:       '💡 NUEVA IDEA',
   cotizacion: '📋 COTIZACIÓN',
   consulta:   '❓ CONSULTA',
+  arrepentimiento: '↩️ BOTÓN DE ARREPENTIMIENTO',
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 function row(label, value) {
@@ -17,7 +27,7 @@ function row(label, value) {
   return `
     <tr>
       <td style="padding:8px 12px;font-weight:600;color:#555;white-space:nowrap;vertical-align:top;">${label}</td>
-      <td style="padding:8px 12px;color:#222;">${value}</td>
+      <td style="padding:8px 12px;color:#222;">${escapeHtml(value)}</td>
     </tr>`
 }
 
@@ -39,6 +49,10 @@ function buildHtml(data) {
   rows += row('Descripción',    data.descripcion)
   rows += row('Referencias',    data.referentes)
   rows += row('Consulta',       data.consulta)
+  rows += row('Producto',       data.producto)
+  rows += row('Email suscripción', data.email_suscripcion)
+  rows += row('Fecha contratación', data.fecha_contratacion)
+  rows += row('Motivo',         data.motivo)
 
   return `
     <div style="font-family:sans-serif;max-width:640px;margin:0 auto;">
