@@ -12,10 +12,13 @@ export default function Hero({ isScrolled }) {
       {/* ── Overlay azul noche — anima a opacity:0 via CSS ── */}
       <div className="intro-overlay" />
 
-      {/* ── hero-logo: RIGEL STUDIO ── */}
-      <div className="hero-logo flex flex-col items-center text-center font-display mt-2">
+      {/* ── hero-logo: RIGEL STUDIO ──
+          Wordmark = logo: conserva el stack serif de sistema de producción
+          (font-serif de Tailwind → Georgia en Windows). font-serif va en h1/h2
+          porque index.css asigna Space Grotesk a los encabezados. */}
+      <div className="hero-logo flex flex-col items-center text-center font-serif mt-2">
         <h1
-          className="tracking-tight font-bold leading-none flex"
+          className="font-serif tracking-tight font-bold leading-none flex"
           style={{ fontSize: 'clamp(4rem, 12vw, 10rem)', perspective: '800px', color: '#F0E7D5' }}
         >
           {RIGEL.map((char, i) => (
@@ -23,7 +26,7 @@ export default function Hero({ isScrolled }) {
           ))}
         </h1>
         <h2
-          className="tracking-[0.2em] font-medium mt-[-0.1em] flex"
+          className="font-serif tracking-[0.2em] font-medium leading-normal mt-[-0.1em] flex"
           style={{ fontSize: 'clamp(2rem, 6vw, 5rem)', perspective: '800px', color: '#F0E7D5' }}
         >
           {STUDIO.map((char, i) => (
@@ -36,12 +39,6 @@ export default function Hero({ isScrolled }) {
       <p
         className="hero-tagline font-display font-medium text-base md:text-lg tracking-[0.2em] uppercase mt-8"
         style={{ color: '#F0E7D5' }}
-      >
-        Software que entiende tu negocio
-      </p>
-      <p
-        className="hero-subline font-body text-base mt-3 text-center px-5"
-        style={{ color: 'rgba(240,231,213,0.85)' }}
       >
         Entendemos antes de construir.
       </p>

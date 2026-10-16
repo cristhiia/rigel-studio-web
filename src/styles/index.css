@@ -388,12 +388,6 @@ h1, h2, h3 {
   }
 }
 
-/* ── Hero subline ── */
-.hero-subline {
-    opacity: 0;
-    animation: fadeUp 0.8s ease 2.2s forwards;
-}
-
 /* =========================================
    REDUCED MOTION — estado final inmediato, sin desplazamientos
    ========================================= */
@@ -409,7 +403,6 @@ h1, h2, h3 {
     .intro-overlay { display: none; }
     .hero-logo .letter,
     .hero-tagline,
-    .hero-subline,
     .scroll-indicator,
     .fade-section,
     .case-card {
