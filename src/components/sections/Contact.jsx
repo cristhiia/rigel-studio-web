@@ -10,19 +10,19 @@ const inputStyle = {
   padding: '14px 16px',
   width: '100%',
   fontSize: '0.95rem',
-  fontFamily: 'Montserrat, sans-serif',
+  fontFamily: "Inter, system-ui, sans-serif",
   transition: 'border-color 0.3s ease',
   outline: 'none',
 };
 
 const labelStyle = {
-  color: 'rgba(240,231,213,0.6)',
+  color: 'rgba(240,231,213,0.85)',
   fontSize: '0.75rem',
   textTransform: 'uppercase',
   letterSpacing: '1.5px',
   marginBottom: 6,
   display: 'block',
-  fontFamily: 'Montserrat, sans-serif',
+  fontFamily: "Inter, system-ui, sans-serif",
 };
 
 const submitStyle = {
@@ -38,7 +38,7 @@ const submitStyle = {
   cursor: 'pointer',
   width: '100%',
   marginTop: 8,
-  fontFamily: 'Montserrat, sans-serif',
+  fontFamily: "Inter, system-ui, sans-serif",
   transition: 'all 0.3s ease',
 };
 
@@ -79,14 +79,14 @@ function SuccessScreen({ message, onReset }) {
         ✦
       </div>
       <h3
-        className="font-serif"
+        className="font-display"
         style={{ color: '#F0E7D5', fontSize: '2rem', marginBottom: 16 }}
       >
         ¡Recibido!
       </h3>
       <p
-        className="font-montserrat"
-        style={{ color: 'rgba(240,231,213,0.7)', lineHeight: 1.7, marginBottom: 32 }}
+        className="font-body"
+        style={{ color: 'rgba(240,231,213,0.85)', lineHeight: 1.7, marginBottom: 32 }}
       >
         {message}
       </p>
@@ -140,7 +140,7 @@ function FlowIdea({ onSuccess }) {
 
   return (
     <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <p className="font-montserrat" style={{ color: 'rgba(240,231,213,0.6)', marginBottom: 8, fontSize: '0.9rem' }}>
+      <p className="font-body" style={{ color: 'rgba(240,231,213,0.85)', marginBottom: 8, fontSize: '1rem' }}>
         Sin tecnicismos, sin formularios eternos. Solo tu idea.
       </p>
 
@@ -170,7 +170,7 @@ function FlowIdea({ onSuccess }) {
       </Field>
 
       <Field label="¿Cuándo lo necesitás?">
-        <select name="cuando" style={{ ...inputStyle, color: 'rgba(240,231,213,0.8)' }} className="contact-input" {...handlers}>
+        <select name="cuando" style={{ ...inputStyle, color: 'rgba(240,231,213,0.85)' }} className="contact-input" {...handlers}>
           <option value="Lo antes posible" style={{ background: '#0A0E1A' }}>Lo antes posible</option>
           <option value="En el próximo mes" style={{ background: '#0A0E1A' }}>En el próximo mes</option>
           <option value="En 2-3 meses" style={{ background: '#0A0E1A' }}>En 2-3 meses</option>
@@ -189,7 +189,7 @@ function FlowIdea({ onSuccess }) {
       </button>
 
       {status === 'error' && (
-        <p className="font-montserrat text-sm" style={{ color: 'rgba(240,231,213,0.7)', textAlign: 'center' }}>
+        <p className="font-body text-base" style={{ color: 'rgba(240,231,213,0.85)', textAlign: 'center' }}>
           Hubo un problema. Escribinos a contacto@rigelstudio.com.ar
         </p>
       )}
@@ -241,7 +241,7 @@ function FlowCotizacion({ onSuccess }) {
 
   return (
     <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <p className="font-montserrat" style={{ color: 'rgba(240,231,213,0.6)', marginBottom: 8, fontSize: '0.9rem' }}>
+      <p className="font-body" style={{ color: 'rgba(240,231,213,0.85)', marginBottom: 8, fontSize: '1rem' }}>
         Ya tenés más claro lo que necesitás. Te mandamos una propuesta en 48 horas.
       </p>
 
@@ -265,7 +265,7 @@ function FlowCotizacion({ onSuccess }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <Field label="Rubro *">
-          <select name="rubro" required style={{ ...inputStyle, color: 'rgba(240,231,213,0.8)' }} className="contact-input" {...handlers}>
+          <select name="rubro" required style={{ ...inputStyle, color: 'rgba(240,231,213,0.85)' }} className="contact-input" {...handlers}>
             <option value="" disabled style={{ background: '#0A0E1A' }}>Seleccioná...</option>
             <option value="Salud" style={{ background: '#0A0E1A' }}>Salud</option>
             <option value="Comercio / Retail" style={{ background: '#0A0E1A' }}>Comercio / Retail</option>
@@ -277,7 +277,7 @@ function FlowCotizacion({ onSuccess }) {
           </select>
         </Field>
         <Field label="Tipo de proyecto *">
-          <select name="tipo_proyecto" required style={{ ...inputStyle, color: 'rgba(240,231,213,0.8)' }} className="contact-input" {...handlers}>
+          <select name="tipo_proyecto" required style={{ ...inputStyle, color: 'rgba(240,231,213,0.85)' }} className="contact-input" {...handlers}>
             <option value="" disabled style={{ background: '#0A0E1A' }}>Seleccioná...</option>
             <option value="App móvil iOS/Android" style={{ background: '#0A0E1A' }}>App móvil iOS/Android</option>
             <option value="Sistema de gestión" style={{ background: '#0A0E1A' }}>Sistema de gestión</option>
@@ -290,7 +290,7 @@ function FlowCotizacion({ onSuccess }) {
       </div>
 
       <Field label="Presupuesto estimado *">
-        <select name="presupuesto" required style={{ ...inputStyle, color: 'rgba(240,231,213,0.8)' }} className="contact-input" {...handlers}>
+        <select name="presupuesto" required style={{ ...inputStyle, color: 'rgba(240,231,213,0.85)' }} className="contact-input" {...handlers}>
           <option value="" disabled style={{ background: '#0A0E1A' }}>Seleccioná...</option>
           <option value="Hasta $350.000 ARS" style={{ background: '#0A0E1A' }}>Hasta $350.000 ARS</option>
           <option value="$350.000 a $1.200.000 ARS" style={{ background: '#0A0E1A' }}>$350.000 a $1.200.000 ARS</option>
@@ -334,7 +334,7 @@ function FlowCotizacion({ onSuccess }) {
       </button>
 
       {status === 'error' && (
-        <p className="font-montserrat text-sm" style={{ color: 'rgba(240,231,213,0.7)', textAlign: 'center' }}>
+        <p className="font-body text-base" style={{ color: 'rgba(240,231,213,0.85)', textAlign: 'center' }}>
           Hubo un problema. Escribinos a contacto@rigelstudio.com.ar
         </p>
       )}
@@ -378,7 +378,7 @@ function FlowConsulta({ onSuccess }) {
 
   return (
     <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <p className="font-montserrat" style={{ color: 'rgba(240,231,213,0.6)', marginBottom: 8, fontSize: '0.9rem' }}>
+      <p className="font-body" style={{ color: 'rgba(240,231,213,0.85)', marginBottom: 8, fontSize: '1rem' }}>
         ¿Tenés una duda puntual? Te respondemos en menos de 24 horas.
       </p>
 
@@ -409,7 +409,7 @@ function FlowConsulta({ onSuccess }) {
           href="https://wa.me/5492645048401"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-montserrat"
+          className="font-body"
           style={{ color: '#D4AF37', fontSize: '0.85rem', textDecoration: 'none', transition: 'opacity 0.2s' }}
           onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
           onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
@@ -418,8 +418,8 @@ function FlowConsulta({ onSuccess }) {
         </a>
         <a
           href="mailto:contacto@rigelstudio.com.ar"
-          className="font-montserrat"
-          style={{ color: 'rgba(240,231,213,0.6)', fontSize: '0.85rem', textDecoration: 'none', transition: 'opacity 0.2s' }}
+          className="font-body"
+          style={{ color: 'rgba(240,231,213,0.85)', fontSize: '0.85rem', textDecoration: 'none', transition: 'opacity 0.2s' }}
           onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7'; }}
           onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
         >
@@ -438,7 +438,7 @@ function FlowConsulta({ onSuccess }) {
       </button>
 
       {status === 'error' && (
-        <p className="font-montserrat text-sm" style={{ color: 'rgba(240,231,213,0.7)', textAlign: 'center' }}>
+        <p className="font-body text-base" style={{ color: 'rgba(240,231,213,0.85)', textAlign: 'center' }}>
           Hubo un problema. Escribinos a contacto@rigelstudio.com.ar
         </p>
       )}
@@ -488,7 +488,7 @@ export default function Contact() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="font-montserrat uppercase text-center"
+          className="font-display uppercase text-center font-medium"
           style={{ color: '#D4AF37', fontSize: '0.7rem', letterSpacing: '0.35em', marginBottom: 20 }}
         >
           Contacto
@@ -500,7 +500,7 @@ export default function Contact() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1, delay: 0.1 }}
-          className="font-serif text-center"
+          className="font-display text-center"
           style={{ color: '#F0E7D5', fontSize: 'clamp(2rem, 5vw, 3.2rem)', marginBottom: 48, lineHeight: 1.2 }}
         >
           ¿Por dónde empezamos?
@@ -537,10 +537,10 @@ export default function Contact() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className="font-montserrat"
+                    className="font-body"
                     style={{
                       background: activeTab === tab.id ? '#D4AF37' : 'transparent',
-                      color: activeTab === tab.id ? '#0A0E1A' : 'rgba(240,231,213,0.6)',
+                      color: activeTab === tab.id ? '#0A0E1A' : 'rgba(240,231,213,0.85)',
                       fontWeight: activeTab === tab.id ? 600 : 400,
                       border: activeTab === tab.id ? 'none' : '1px solid rgba(212,175,55,0.3)',
                       borderRadius: 100,
@@ -559,7 +559,7 @@ export default function Contact() {
                     onMouseLeave={(e) => {
                       if (activeTab !== tab.id) {
                         e.currentTarget.style.borderColor = 'rgba(212,175,55,0.3)';
-                        e.currentTarget.style.color = 'rgba(240,231,213,0.6)';
+                        e.currentTarget.style.color = 'rgba(240,231,213,0.85)';
                       }
                     }}
                   >

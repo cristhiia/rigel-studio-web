@@ -15,6 +15,7 @@ import ThreadLine from '../effects/ThreadLine';
 import EasterEgg from '../effects/EasterEgg';
 import RigelJourney from '../effects/RigelJourney';
 import Footer from './Footer';
+import { prefersReducedMotion } from '../../lib/motion';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -66,6 +67,21 @@ export default function Layout() {
   }, []);
 
   useEffect(() => {
+    const reduced = prefersReducedMotion();
+
+    // Reduced motion: scroll nativo, sin smoothing ni animaciones ligadas al scroll.
+    // Mantiene el estado isScrolled y el evento que escuchan otros componentes.
+    if (reduced) {
+      const onScroll = () => {
+        const scroll = window.scrollY;
+        setIsScrolled(scroll > 50);
+        window.dispatchEvent(new CustomEvent('lenis-scroll', { detail: { scroll } }));
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      document.querySelectorAll('.fade-section, .case-card').forEach(el => el.classList.add('visible'));
+      return () => window.removeEventListener('scroll', onScroll);
+    }
+
     // ── Lenis smooth scroll ───────────────────────────────────────────────
     const lenis = new Lenis({
       duration: 1.1,
@@ -250,10 +266,10 @@ export default function Layout() {
         {/* ── Nav flotante tipo píldora ────────────────────────────────── */}
         <nav className={`nav-pill ${isScrolled ? 'scrolled' : ''}`}>
           <div className="flex items-baseline">
-            <span className="font-playfair font-bold text-2xl" style={{ color: '#F0E7D5' }}>R</span>
+            <span className="font-display font-bold text-2xl" style={{ color: '#F0E7D5' }}>R</span>
             <span
               onClick={() => setEasterEggOpen(true)}
-              className="font-playfair font-bold text-xl ml-1"
+              className="font-display font-bold text-xl ml-1"
               style={{ color: '#D4AF37', cursor: 'pointer' }}
             >
               ✦
@@ -262,7 +278,7 @@ export default function Layout() {
           <div className="desktop-nav-links hidden md:flex items-center gap-8">
             {NAV_DESKTOP.map(([label, href]) => (
               <a key={href} href={href}
-                className="font-montserrat text-sm transition-colors"
+                className="font-body text-sm transition-colors"
                 style={{ color: '#F0E7D5' }}
                 onMouseEnter={e => e.target.style.color = '#D4AF37'}
                 onMouseLeave={e => e.target.style.color = '#F0E7D5'}
@@ -329,12 +345,12 @@ export default function Layout() {
                   </div>
 
                   {/* Tag */}
-                  <span className="font-montserrat text-xs uppercase tracking-[0.3em] mb-3 block" style={{ color: '#D4AF37' }}>
+                  <span className="font-display text-xs uppercase tracking-[0.3em] mb-3 block font-medium" style={{ color: '#D4AF37' }}>
                     {selectedCase.tag}
                   </span>
 
                   {/* Título */}
-                  <h3 className="font-serif font-bold mb-6" style={{ fontSize: 'clamp(1.8rem, 5vw, 2.8rem)', color: '#F0E7D5', lineHeight: 1.15 }}>
+                  <h3 className="font-display font-bold mb-6" style={{ fontSize: 'clamp(1.8rem, 5vw, 2.8rem)', color: '#F0E7D5', lineHeight: 1.15 }}>
                     {selectedCase.title}
                   </h3>
 
@@ -353,8 +369,8 @@ export default function Layout() {
                             textAlign: 'center',
                           }}
                         >
-                          <div className="font-playfair font-bold" style={{ color: '#D4AF37', fontSize: 'clamp(0.85rem, 2.5vw, 1.05rem)', lineHeight: 1.2 }}>{m.value}</div>
-                          <div className="font-montserrat" style={{ color: 'rgba(240,231,213,0.45)', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: 5 }}>{m.label}</div>
+                          <div className="font-display font-bold" style={{ color: '#D4AF37', fontSize: 'clamp(0.85rem, 2.5vw, 1.05rem)', lineHeight: 1.2 }}>{m.value}</div>
+                          <div className="font-body" style={{ color: 'rgba(240,231,213,0.85)', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: 5 }}>{m.label}</div>
                         </div>
                       ))}
                     </div>
@@ -362,14 +378,14 @@ export default function Layout() {
 
                   {/* SECCIÓN 2 — Problema / Solución */}
                   <div style={{ borderTop: '1px solid rgba(212,175,55,0.15)', paddingTop: 24, marginBottom: 24 }}>
-                    <div className="grid md:grid-cols-2 gap-6" style={{ color: 'rgba(240,231,213,0.75)' }}>
+                    <div className="grid md:grid-cols-2 gap-6" style={{ color: 'rgba(240,231,213,0.85)' }}>
                       <div>
-                        <h4 className="font-montserrat font-bold uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.65rem', letterSpacing: '0.25em' }}>El Desafío</h4>
-                        <p style={{ fontSize: '0.95rem', lineHeight: 1.75 }}>{selectedCase.problem}</p>
+                        <h4 className="font-display font-medium uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.65rem', letterSpacing: '0.25em' }}>El Desafío</h4>
+                        <p style={{ fontSize: '1rem', lineHeight: 1.75 }}>{selectedCase.problem}</p>
                       </div>
                       <div>
-                        <h4 className="font-montserrat font-bold uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.65rem', letterSpacing: '0.25em' }}>La Solución</h4>
-                        <p style={{ fontSize: '0.95rem', lineHeight: 1.75 }}>{selectedCase.solution}</p>
+                        <h4 className="font-display font-medium uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.65rem', letterSpacing: '0.25em' }}>La Solución</h4>
+                        <p style={{ fontSize: '1rem', lineHeight: 1.75 }}>{selectedCase.solution}</p>
                       </div>
                     </div>
                   </div>
@@ -377,12 +393,12 @@ export default function Layout() {
                   {/* SECCIÓN 3 — Stack tecnológico */}
                   {selectedCase.stack && (
                     <div style={{ borderTop: '1px solid rgba(212,175,55,0.15)', paddingTop: 20, marginBottom: 28 }}>
-                      <h4 className="font-montserrat font-bold uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.65rem', letterSpacing: '0.25em' }}>Stack Tecnológico</h4>
+                      <h4 className="font-display font-medium uppercase mb-3" style={{ color: '#D4AF37', fontSize: '0.65rem', letterSpacing: '0.25em' }}>Stack Tecnológico</h4>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {selectedCase.stack.map((tech, i) => (
                           <span
                             key={i}
-                            className="font-montserrat"
+                            className="font-body"
                             style={{
                               border: '1px solid rgba(212,175,55,0.5)',
                               color: '#D4AF37',
@@ -402,7 +418,7 @@ export default function Layout() {
                   {/* SECCIÓN 4 — CTA */}
                   <div style={{ textAlign: 'center', paddingTop: 8 }}>
                     <button
-                      className="font-montserrat uppercase tracking-widest font-semibold"
+                      className="font-display uppercase tracking-widest font-medium"
                       style={{
                         background: '#D4AF37', color: '#0A0E1A',
                         border: 'none', padding: '14px 40px',
@@ -460,9 +476,9 @@ export default function Layout() {
         {/* CTA transitional — gradient sweep animation */}
         <section className="fade-section w-full pt-40 pb-20 flex items-center justify-center relative" style={{ zIndex: 10 }}>
           <p
-            className="cta-text font-playfair italic text-xl text-center"
+            className="cta-text font-body italic text-xl text-center"
             style={{
-              background: 'linear-gradient(90deg, rgba(240,231,213,0.5), #D4AF37, rgba(240,231,213,0.5))',
+              background: 'linear-gradient(90deg, rgba(240,231,213,0.85), #D4AF37, rgba(240,231,213,0.85))',
               backgroundSize: '200% 100%',
               backgroundPosition: '0% 50%',
               WebkitBackgroundClip: 'text',

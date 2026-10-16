@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { prefersReducedMotion } from '../../lib/motion';
 
 const TECHS = [
   // Orbit 1 (inner) — 6 techs
@@ -49,6 +50,7 @@ export default function TechStack() {
   const angle2Ref = useRef(0);
   const pausedRef = useRef(false);
   const frameRef  = useRef();
+  const reducedRef = useRef(prefersReducedMotion());
   const nodeRefs  = useRef([]);
 
   const [tooltip, setTooltip] = useState(null); // { name, desc }
@@ -79,7 +81,8 @@ export default function TechStack() {
       el.style.transform = `translate(${x}px, ${y}px)`;
     });
 
-    frameRef.current = requestAnimationFrame(animate);
+    // Reduced motion: posiciona los nodos una vez y no repite
+    if (!reducedRef.current) frameRef.current = requestAnimationFrame(animate);
   }, [CENTER, R1, R2, NODE_R]);
 
   useEffect(() => {
@@ -101,7 +104,7 @@ export default function TechStack() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="font-montserrat uppercase text-center"
+          className="font-display uppercase text-center font-medium"
           style={{ color: '#D4AF37', fontSize: '0.7rem', letterSpacing: '0.35em', marginBottom: 20 }}
         >
           Stack Tecnológico
@@ -113,7 +116,7 @@ export default function TechStack() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1, delay: 0.1 }}
-          className="font-serif text-center"
+          className="font-display text-center"
           style={{ color: '#F0E7D5', fontSize: 'clamp(2rem, 5vw, 3.2rem)', marginBottom: 64, lineHeight: 1.2 }}
         >
           Las herramientas detrás de cada misión
@@ -221,7 +224,7 @@ export default function TechStack() {
                 >
                   <span style={{ fontSize: isMobile ? '0.7rem' : '0.9rem', lineHeight: 1, marginBottom: 1 }}>{tech.symbol}</span>
                   <span
-                    className="font-montserrat font-bold"
+                    className="font-body font-bold"
                     style={{ fontSize: FONT, color: '#F0E7D5', lineHeight: 1.1 }}
                   >
                     {tech.name}
@@ -249,13 +252,13 @@ export default function TechStack() {
               padding: '16px 24px',
               maxWidth: 400,
             }}>
-              <p className="font-montserrat uppercase" style={{ color: '#D4AF37', fontSize: '0.6rem', letterSpacing: '0.3em', marginBottom: 6 }}>
+              <p className="font-display uppercase font-medium" style={{ color: '#D4AF37', fontSize: '0.6rem', letterSpacing: '0.3em', marginBottom: 6 }}>
                 {tooltip.category}
               </p>
-              <p className="font-montserrat font-bold" style={{ color: '#F0E7D5', fontSize: '1.1rem', marginBottom: 8 }}>
+              <p className="font-body font-bold" style={{ color: '#F0E7D5', fontSize: '1.1rem', marginBottom: 8 }}>
                 {tooltip.symbol} {tooltip.name}
               </p>
-              <p className="font-montserrat" style={{ color: 'rgba(240,231,213,0.7)', fontSize: '0.85rem', lineHeight: 1.6 }}>
+              <p className="font-body" style={{ color: 'rgba(240,231,213,0.85)', fontSize: '1rem', lineHeight: 1.6 }}>
                 {tooltip.desc}
               </p>
             </div>
@@ -268,8 +271,8 @@ export default function TechStack() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1, delay: 0.4 }}
-          className="font-serif italic text-center"
-          style={{ color: 'rgba(240,231,213,0.55)', marginTop: 48, fontSize: '1.05rem', lineHeight: 1.7 }}
+          className="font-body italic text-center"
+          style={{ color: 'rgba(240,231,213,0.85)', marginTop: 48, fontSize: '1.05rem', lineHeight: 1.7 }}
         >
           Elegimos cada herramienta con criterio. No usamos lo que está de moda — usamos lo que resuelve el problema.
         </motion.p>

@@ -19,7 +19,7 @@ const CONTACT_ITEMS = [
 ];
 
 const colTitle = {
-  fontFamily: 'Montserrat, sans-serif',
+  fontFamily: "Inter, system-ui, sans-serif",
   fontSize: '0.7rem',
   fontWeight: 600,
   textTransform: 'uppercase',
@@ -31,9 +31,9 @@ const colTitle = {
 
 const linkBase = {
   display: 'block',
-  fontFamily: 'Montserrat, sans-serif',
+  fontFamily: "Inter, system-ui, sans-serif",
   fontSize: '0.9rem',
-  color: 'rgba(240,231,213,0.6)',
+  color: 'rgba(240,231,213,0.85)',
   textDecoration: 'none',
   marginBottom: 12,
   transition: 'color 0.2s ease',
@@ -41,7 +41,7 @@ const linkBase = {
 
 export default function Footer() {
   const handleLinkHover = (e, enter) => {
-    e.currentTarget.style.color = enter ? '#D4AF37' : 'rgba(240,231,213,0.6)';
+    e.currentTarget.style.color = enter ? '#D4AF37' : 'rgba(240,231,213,0.85)';
   };
 
   return (
@@ -73,13 +73,13 @@ export default function Footer() {
               e.currentTarget.nextSibling.style.display = 'block';
             }}
           />
-          <span style={{ display: 'none', fontFamily: 'Playfair Display, serif', fontWeight: 700, fontSize: '1.4rem', color: '#F0E7D5', marginBottom: 20 }}>
+          <span style={{ display: 'none', fontFamily: "'Space Grotesk', system-ui, sans-serif", fontWeight: 700, fontSize: '1.4rem', color: '#F0E7D5', marginBottom: 20 }}>
             R <span style={{ color: '#D4AF37' }}>✦</span>
           </span>
-          <p style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.9rem', color: 'rgba(240,231,213,0.5)', margin: '0 0 8px', lineHeight: 1.6 }}>
+          <p style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: '1rem', color: 'rgba(240,231,213,0.85)', margin: '0 0 8px', lineHeight: 1.6 }}>
             Software que entiende tu negocio.
           </p>
-          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.8rem', color: 'rgba(240,231,213,0.3)' }}>
+          <span style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: '0.8rem', color: 'rgba(240,231,213,0.85)' }}>
             San Juan, Argentina
           </span>
         </div>
@@ -138,10 +138,10 @@ export default function Footer() {
       {/* Separador */}
       <div style={{ borderTop: '1px solid rgba(240,231,213,0.06)', marginTop: 40, paddingTop: 24 }}>
         <div className="footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.8rem', color: 'rgba(240,231,213,0.3)' }}>
+          <span style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: '0.8rem', color: 'rgba(240,231,213,0.85)' }}>
             © 2026 Rigel Studio. Todos los derechos reservados.
           </span>
-          <span style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.8rem', color: 'rgba(240,231,213,0.3)' }}>
+          <span style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: '0.8rem', color: 'rgba(240,231,213,0.85)' }}>
             Hecho con ✦ en San Juan, Argentina
           </span>
         </div>

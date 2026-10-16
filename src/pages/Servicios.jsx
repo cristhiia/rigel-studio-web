@@ -17,7 +17,7 @@ const servicios = [
   },
   {
     h2: 'Diseño de Producto Digital',
-    body: 'De la idea al producto listo para lanzar. UX, UI y desarrollo integrados en un solo estudio boutique. Sin intermediarios, sin equipos que no conocen tu negocio.',
+    body: 'De la idea al producto listo para lanzar. UX, UI y desarrollo integrados en un solo estudio de software. Sin intermediarios, sin equipos que no conocen tu negocio.',
   },
 ];
 
@@ -53,15 +53,15 @@ export default function Servicios() {
   return (
     <>
       <RigelBackground />
-      <div style={{ minHeight: '100vh', backgroundColor: '#0A0E1A', color: '#F0E7D5', fontFamily: 'Montserrat, sans-serif', position: 'relative', zIndex: 1 }}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#0A0E1A', color: '#F0E7D5', fontFamily: "Inter, system-ui, sans-serif", position: 'relative', zIndex: 1 }}>
 
         {/* Nav mínima */}
         <nav style={{ padding: '24px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 4 }}>
-            <span style={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, fontSize: '1.5rem', color: '#F0E7D5' }}>R</span>
-            <span style={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, fontSize: '1.3rem', color: '#D4AF37' }}>✦</span>
+            <span style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif", fontWeight: 700, fontSize: '1.5rem', color: '#F0E7D5' }}>R</span>
+            <span style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif", fontWeight: 700, fontSize: '1.3rem', color: '#D4AF37' }}>✦</span>
           </Link>
-          <Link to="/#contacto" style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '0.8rem', color: '#F0E7D5', textDecoration: 'none', letterSpacing: '0.15em', textTransform: 'uppercase', border: '1px solid rgba(212,175,55,0.5)', padding: '10px 20px', transition: 'all 0.3s ease' }}
+          <Link to="/#contacto" style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif", fontWeight: 500, fontSize: '0.8rem', color: '#F0E7D5', textDecoration: 'none', letterSpacing: '0.15em', textTransform: 'uppercase', border: '1px solid rgba(212,175,55,0.5)', padding: '10px 20px', transition: 'all 0.3s ease' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.1)'; e.currentTarget.style.color = '#D4AF37'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#F0E7D5'; }}
           >
@@ -71,10 +71,10 @@ export default function Servicios() {
 
         {/* Hero */}
         <header style={{ maxWidth: 720, margin: '60px auto 0', padding: '0 24px' }}>
-          <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 700, lineHeight: 1.15, color: '#F0E7D5', marginBottom: 24 }}>
+          <h1 style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif", fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 700, lineHeight: 1.15, color: '#F0E7D5', marginBottom: 24 }}>
             Desarrollo de Software a Medida en San Juan, Argentina
           </h1>
-          <p style={{ fontSize: '1.05rem', lineHeight: 1.85, color: 'rgba(240,231,213,0.75)', marginBottom: 0 }}>
+          <p style={{ fontSize: '1.05rem', lineHeight: 1.85, color: 'rgba(240,231,213,0.85)', marginBottom: 0 }}>
             En Rigel Studio diseñamos y desarrollamos software a medida para pymes y emprendedores en San Juan, Argentina. No usamos soluciones genéricas: cada sistema que construimos empieza con entender exactamente tu negocio.
           </p>
         </header>
@@ -83,10 +83,10 @@ export default function Servicios() {
         <main style={{ maxWidth: 720, margin: '80px auto', padding: '0 24px' }}>
           {servicios.map((s) => (
             <div key={s.h2} style={{ marginBottom: 64 }}>
-              <h2 style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '1.1rem', fontWeight: 600, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
+              <h2 style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif", fontSize: '1.1rem', fontWeight: 700, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
                 {s.h2}
               </h2>
-              <p style={{ fontSize: '1rem', lineHeight: 1.85, color: 'rgba(240,231,213,0.8)' }}>
+              <p style={{ fontSize: '1rem', lineHeight: 1.85, color: 'rgba(240,231,213,0.85)' }}>
                 {s.body}
               </p>
             </div>
@@ -94,10 +94,10 @@ export default function Servicios() {
 
           {/* Sección geográfica */}
           <div style={{ borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: 56, marginBottom: 64 }}>
-            <h2 style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '1.1rem', fontWeight: 600, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
+            <h2 style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif", fontSize: '1.1rem', fontWeight: 700, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
               Trabajamos en San Juan y toda Argentina
             </h2>
-            <p style={{ fontSize: '1rem', lineHeight: 1.85, color: 'rgba(240,231,213,0.8)' }}>
+            <p style={{ fontSize: '1rem', lineHeight: 1.85, color: 'rgba(240,231,213,0.85)' }}>
               Nuestros clientes están en San Juan Capital y en todo el país. La mayoría de los proyectos se gestionan 100% remoto — reuniones por video, entregas por etapas y comunicación directa con el fundador.
             </p>
           </div>
@@ -110,7 +110,7 @@ export default function Servicios() {
                 display: 'inline-block',
                 background: '#D4AF37',
                 color: '#0A0E1A',
-                fontFamily: 'Montserrat, sans-serif',
+                fontFamily: "Inter, system-ui, sans-serif",
                 fontWeight: 600,
                 fontSize: '0.85rem',
                 letterSpacing: '0.2em',

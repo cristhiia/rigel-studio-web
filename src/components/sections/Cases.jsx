@@ -53,7 +53,7 @@ export default function Cases({ onSelectCase }) {
   return (
     <div className="w-full mx-auto px-8 py-24 h-full flex flex-col justify-center bg-transparent">
       <h2
-        className="font-playfair text-4xl font-bold mb-12 text-center"
+        className="font-display text-4xl font-bold mb-12 text-center"
         style={{ color: '#F0E7D5' }}
       >
         Casos de Estudio
@@ -72,20 +72,20 @@ export default function Cases({ onSelectCase }) {
           >
             <div className="relative z-10 flex-grow">
               <span
-                className="font-montserrat text-[10px] uppercase tracking-[0.2em] block mb-6"
+                className="font-display text-[10px] uppercase tracking-[0.2em] block mb-6 font-medium"
                 style={{ color: '#D4AF37' }}
               >
                 {p.tag}
               </span>
               <h3
-                className="font-playfair text-3xl font-bold mb-4 transition-colors duration-300"
+                className="font-display text-3xl font-bold mb-4 transition-colors duration-300"
                 style={{ color: '#F0E7D5' }}
               >
                 {p.title}
               </h3>
               <p
-                className="font-montserrat text-sm leading-relaxed pt-2 pb-4"
-                style={{ color: 'rgba(240,231,213,0.7)' }}
+                className="font-body text-base leading-relaxed pt-2 pb-4"
+                style={{ color: 'rgba(240,231,213,0.85)' }}
               >
                 {p.shortDescription}
               </p>
@@ -96,8 +96,8 @@ export default function Cases({ onSelectCase }) {
               style={{ borderTop: '1px solid rgba(240,231,213,0.1)' }}
             >
               <span
-                className="font-montserrat text-xs uppercase tracking-widest transition-colors"
-                style={{ color: 'rgba(240,231,213,0.5)' }}
+                className="font-display text-xs uppercase tracking-widest transition-colors font-medium"
+                style={{ color: 'rgba(240,231,213,0.85)' }}
               >
                 {p.buttonText}
               </span>

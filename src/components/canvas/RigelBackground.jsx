@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { prefersReducedMotion } from '../../lib/motion';
 
 const FRAME_MS = 1000 / 60;
 const GOLD  = '212,175,55';
@@ -23,6 +24,7 @@ export default function RigelBackground() {
     const ctx  = bgCanvas.getContext('2d');
     const sctx = starsCanvas.getContext('2d');
 
+    const reduced = prefersReducedMotion();
     let mobile = window.innerWidth <= 768;
     let cx, cy;
     let bgGradientCanvas, nebulaLayers, rings, stars;
@@ -117,9 +119,8 @@ export default function RigelBackground() {
       buildNebulae();
       buildRings();
       buildStars();
+      if (reduced && rings) drawFrame(0, 0);
     }
-    setSize();
-    window.addEventListener('resize', setSize);
 
     // ── Scroll parallax for stars layer — transform only, GPU-accelerated ──
     let wcTimeout;
@@ -260,6 +261,18 @@ export default function RigelBackground() {
       });
     }
 
+    function drawFrame(delta, t) {
+      ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+      ctx.drawImage(bgGradientCanvas, 0, 0);
+      drawNebulae(t);
+      rings.forEach(r => drawRing(r, delta));
+      drawRigelStar(t * 0.0012);
+      drawStars(t);
+    }
+
+    setSize();
+    window.addEventListener('resize', setSize);
+
     // ── Animation loop, capped at 60fps via deltaTime ───────────────────────
     let raf;
     let lastTime = 0;
@@ -271,15 +284,10 @@ export default function RigelBackground() {
       lastTime = now - (delta % FRAME_MS);
       elapsed += delta;
 
-      ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-      ctx.drawImage(bgGradientCanvas, 0, 0);
-      drawNebulae(elapsed);
-      rings.forEach(r => drawRing(r, delta));
-      drawRigelStar(elapsed * 0.0012);
-
-      drawStars(elapsed);
+      drawFrame(delta, elapsed);
     }
-    raf = requestAnimationFrame(loop);
+    // Reduced motion: un solo frame estático (se redibuja en resize)
+    if (!reduced) raf = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(raf);

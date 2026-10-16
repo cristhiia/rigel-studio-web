@@ -12,8 +12,8 @@ export default {
         'rigel-steel': '#D4AF37',
       },
       fontFamily: {
-        'playfair': ['"Playfair Display"', 'serif'],
-        'montserrat': ['Montserrat', 'sans-serif'],
+        'display': ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+        'body': ['Inter', 'system-ui', 'sans-serif'],
       }
     },
   },

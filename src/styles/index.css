@@ -17,7 +17,14 @@ html, body, #root {
     padding: 0;
     background-color: #0A0E1A;
     color: #F0E7D5;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    font-synthesis: none;
+}
+
+h1, h2, h3 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
 }
 
 /* ── Section entrance — IntersectionObserver ── */
@@ -213,7 +220,7 @@ html, body, #root {
 }
 
 .nav-cta-btn {
-  font-family: 'Montserrat', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -336,11 +343,12 @@ html, body, #root {
 }
 
 .mobile-menu-overlay a {
-  font-family: 'Playfair Display', serif !important;
+  font-family: 'Space Grotesk', system-ui, sans-serif !important;
+  font-weight: 700 !important;
   font-size: 2.5rem !important;
   color: #F0E7D5 !important;
   text-decoration: none !important;
-  letter-spacing: 4px !important;
+  letter-spacing: 0.02em !important;
   background: none !important;
   border: none !important;
   text-transform: none !important;
@@ -378,4 +386,35 @@ html, body, #root {
   .metric-card:last-child {
     grid-column: 1 / -1;
   }
+}
+
+/* ── Hero subline ── */
+.hero-subline {
+    opacity: 0;
+    animation: fadeUp 0.8s ease 2.2s forwards;
+}
+
+/* =========================================
+   REDUCED MOTION — estado final inmediato, sin desplazamientos
+   ========================================= */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0s !important;
+        scroll-behavior: auto !important;
+    }
+    .intro-overlay { display: none; }
+    .hero-logo .letter,
+    .hero-tagline,
+    .hero-subline,
+    .scroll-indicator,
+    .fade-section,
+    .case-card {
+        opacity: 1;
+        transform: none;
+    }
+    .scroll-indicator { transform: translateX(-50%); }
 }

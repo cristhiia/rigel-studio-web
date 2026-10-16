@@ -16,7 +16,7 @@ export const posts = [
           'Tipo de proyecto (app móvil, sistema web, integración)',
           'Tiempo de desarrollo estimado',
           'Tecnologías utilizadas',
-          'Si trabajás con agencia, freelance o software factory',
+          'Si trabajás con un estudio, un freelance o una software factory',
         ],
       },
       {
@@ -31,8 +31,8 @@ export const posts = [
         ],
       },
       {
-        h2: '¿Agencia boutique vs freelance vs software factory?',
-        body: 'Cada opción tiene su lugar. Un freelance es ideal para proyectos pequeños y presupuesto ajustado, pero asumís el riesgo de disponibilidad y continuidad. Las software factories tienen procesos, pero también capas de intermediarios que encarecen el proyecto y diluyen la atención. Una agencia boutique como Rigel Studio ofrece lo mejor de ambos mundos: la agilidad y el contacto directo del freelance con la solidez de proceso de una agencia, sin los costos de estructura de una factory.',
+        h2: '¿Estudio de software vs freelance vs software factory?',
+        body: 'Cada opción tiene su lugar. Un freelance es ideal para proyectos pequeños y presupuesto ajustado, pero asumís el riesgo de disponibilidad y continuidad. Las software factories tienen procesos, pero también capas de intermediarios que encarecen el proyecto y diluyen la atención. Un estudio de software como Rigel Studio ofrece lo mejor de ambos mundos: la agilidad y el contacto directo del freelance con la solidez de proceso de un equipo, sin los costos de estructura de una factory.',
       },
       {
         h2: '¿Qué incluye el precio en Rigel Studio?',
@@ -100,7 +100,7 @@ export const posts = [
       },
       {
         h2: 'Paso 3 — Buscar el proveedor adecuado en San Juan',
-        body: 'Trabajar con alguien local tiene ventajas reales: reuniones presenciales cuando es necesario, conocimiento del contexto regional, y disponibilidad horaria sin diferencia de husos. En San Juan hay profesionales y agencias que pueden acompañar este proceso.',
+        body: 'Trabajar con alguien local tiene ventajas reales: reuniones presenciales cuando es necesario, conocimiento del contexto regional, y disponibilidad horaria sin diferencia de husos. En San Juan hay profesionales y estudios que pueden acompañar este proceso.',
       },
       {
         h2: 'Paso 4 — Implementar por etapas, no todo de una vez',

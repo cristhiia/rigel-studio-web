@@ -62,7 +62,7 @@ function FAQItem({ item, isOpen, onToggle }) {
           gap: 16,
         }}
       >
-        <span className="font-montserrat" style={{ fontSize: '0.95rem', lineHeight: 1.4 }}>
+        <span className="font-body" style={{ fontSize: '1rem', lineHeight: 1.4 }}>
           {item.q}
         </span>
         <span
@@ -90,10 +90,10 @@ function FAQItem({ item, isOpen, onToggle }) {
           ref={answerRef}
           style={{
             padding: '0 24px 20px',
-            color: 'rgba(240,231,213,0.7)',
+            color: 'rgba(240,231,213,0.85)',
             lineHeight: 1.7,
           }}
-          className="font-montserrat"
+          className="font-body"
         >
           {item.a}
         </div>
@@ -121,7 +121,7 @@ export default function FAQ() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="font-montserrat uppercase text-center"
+          className="font-display uppercase text-center font-medium"
           style={{
             color: '#D4AF37',
             fontSize: '0.7rem',
@@ -138,7 +138,7 @@ export default function FAQ() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1, delay: 0.1 }}
-          className="font-serif text-center"
+          className="font-display text-center"
           style={{
             color: '#F0E7D5',
             fontSize: 'clamp(2rem, 5vw, 3.2rem)',

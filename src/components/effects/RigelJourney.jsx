@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
+import { prefersReducedMotion } from '../../lib/motion';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SIZE      = 80;
@@ -102,7 +103,9 @@ export default function RigelJourney() {
     currentSection:  'inicio',
   }).current;
 
-  const alreadyRan = typeof window !== 'undefined' && !!sessionStorage.getItem('rigelJourneyDone');
+  // Reduced motion: el recorrido se omite como si ya hubiera corrido
+  const alreadyRan = typeof window !== 'undefined'
+    && (!!sessionStorage.getItem('rigelJourneyDone') || prefersReducedMotion());
   const isMobile   = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   useEffect(() => {

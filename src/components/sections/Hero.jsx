@@ -13,7 +13,7 @@ export default function Hero({ isScrolled }) {
       <div className="intro-overlay" />
 
       {/* ── hero-logo: RIGEL STUDIO ── */}
-      <div className="hero-logo flex flex-col items-center text-center font-serif mt-2">
+      <div className="hero-logo flex flex-col items-center text-center font-display mt-2">
         <h1
           className="tracking-tight font-bold leading-none flex"
           style={{ fontSize: 'clamp(4rem, 12vw, 10rem)', perspective: '800px', color: '#F0E7D5' }}
@@ -34,15 +34,21 @@ export default function Hero({ isScrolled }) {
 
       {/* ── hero-tagline ── */}
       <p
-        className="hero-tagline font-montserrat text-sm md:text-base tracking-[0.3em] uppercase mt-8"
-        style={{ color: 'rgba(240,231,213,0.7)' }}
+        className="hero-tagline font-display font-medium text-base md:text-lg tracking-[0.2em] uppercase mt-8"
+        style={{ color: '#F0E7D5' }}
       >
         Software que entiende tu negocio
+      </p>
+      <p
+        className="hero-subline font-body text-base mt-3 text-center px-5"
+        style={{ color: 'rgba(240,231,213,0.85)' }}
+      >
+        Entendemos antes de construir.
       </p>
 
       {/* ── hero CTA ── */}
       <button
-        className="hero-cta font-montserrat"
+        className="hero-cta font-body"
         onClick={() => document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' })}
         style={{
           background: '#D4AF37',
@@ -74,7 +80,7 @@ export default function Hero({ isScrolled }) {
       <div className="scroll-indicator absolute bottom-12 left-1/2 flex flex-col items-center gap-2 pointer-events-none"
         style={{ transform: 'translateX(-50%)' }}
       >
-        <span className="font-montserrat text-[10px] tracking-[0.4em] uppercase" style={{ color: 'rgba(240,231,213,0.4)' }}>
+        <span className="font-display text-[10px] tracking-[0.4em] uppercase font-medium" style={{ color: 'rgba(240,231,213,0.85)' }}>
           Scroll
         </span>
         <div className="w-px h-8" style={{ background: 'linear-gradient(to bottom, rgba(212,175,55,0.6), transparent)' }} />

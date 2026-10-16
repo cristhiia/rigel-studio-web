@@ -13,13 +13,13 @@ const cardVariants = {
 function PriceDisplay({ amount, color = '#F0E7D5' }) {
   return (
     <div className="flex items-baseline gap-2 flex-wrap">
-      <span className="font-montserrat text-xs uppercase tracking-widest" style={{ color: 'rgba(240,231,213,0.45)' }}>
+      <span className="font-display text-xs uppercase tracking-widest font-medium" style={{ color: 'rgba(240,231,213,0.85)' }}>
         desde
       </span>
-      <span className="font-playfair text-2xl font-bold" style={{ color }}>
+      <span className="font-display text-2xl font-bold" style={{ color }}>
         ${amount}
       </span>
-      <span className="font-montserrat text-xs" style={{ color: 'rgba(240,231,213,0.35)', letterSpacing: '0.15em' }}>
+      <span className="font-body text-xs" style={{ color: 'rgba(240,231,213,0.85)', letterSpacing: '0.15em' }}>
         ARS
       </span>
     </div>
@@ -41,19 +41,19 @@ function NexusCard() {
       whileHover={{ y: -12, transition: { type: 'spring', stiffness: 300 } }}
       className="card-nexus glass-card relative flex flex-col p-8 overflow-hidden"
     >
-      <div className="card-tag" style={{ color: '#3D5A80', fontSize: 10, letterSpacing: '0.4em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 12 }}>
+      <div className="card-tag" style={{ color: 'rgba(240,231,213,0.85)', fontFamily: "'Space Grotesk', system-ui, sans-serif", fontSize: 10, letterSpacing: '0.4em', fontWeight: 500, textTransform: 'uppercase', marginBottom: 12 }}>
         NIVEL 1
       </div>
-      <h3 className="font-playfair text-3xl font-bold mb-1" style={{ color: '#F0E7D5' }}>NEXUS</h3>
-      <p className="font-montserrat text-sm mb-6" style={{ color: 'rgba(240,231,213,0.6)', letterSpacing: '0.05em' }}>
+      <h3 className="font-display text-3xl font-bold mb-1" style={{ color: '#F0E7D5' }}>NEXUS</h3>
+      <p className="font-body text-sm mb-6" style={{ color: 'rgba(240,231,213,0.85)', letterSpacing: '0.05em' }}>
         El Comienzo
       </p>
-      <p className="font-montserrat text-sm mb-8" style={{ color: 'rgba(240,231,213,0.7)', lineHeight: 1.7 }}>
+      <p className="font-body text-base mb-8" style={{ color: 'rgba(240,231,213,0.85)', lineHeight: 1.7 }}>
         Tu entrada al universo Rigel. Un proyecto concreto, rápido y ejecutado con la misma obsesión por el detalle que todo lo que hacemos.
       </p>
 
       <div className="flex-grow mb-8">
-        <p className="font-montserrat text-[10px] uppercase tracking-widest mb-4" style={{ color: 'rgba(61,90,128,0.7)' }}>Incluye</p>
+        <p className="font-display text-[10px] uppercase tracking-widest mb-4 font-medium" style={{ color: 'rgba(240,231,213,0.85)' }}>Incluye</p>
         {[
           'Presencia digital profesional o sistema inicial a medida',
           'Diseño + desarrollo + puesta en producción',
@@ -61,8 +61,8 @@ function NexusCard() {
           'Soporte 30 días post-lanzamiento',
         ].map(item => (
           <div key={item} className="flex items-start gap-3 mb-3">
-            <span style={{ color: '#3D5A80', flexShrink: 0, marginTop: 1 }}>✦</span>
-            <span className="font-montserrat text-sm" style={{ color: 'rgba(240,231,213,0.8)' }}>{item}</span>
+            <span style={{ color: 'rgba(240,231,213,0.85)', flexShrink: 0, marginTop: 1 }}>✦</span>
+            <span className="font-body text-base" style={{ color: 'rgba(240,231,213,0.85)' }}>{item}</span>
           </div>
         ))}
       </div>
@@ -72,7 +72,7 @@ function NexusCard() {
       </div>
 
       <button
-        className="font-montserrat text-sm flex items-center gap-3 transition-all duration-300"
+        className="font-body text-sm flex items-center gap-3 transition-all duration-300"
         style={{ color: '#D4AF37', letterSpacing: '0.15em' }}
         onClick={() => scrollToContact('idea')}
         onMouseEnter={e => e.currentTarget.style.color = '#F4C842'}
@@ -92,30 +92,30 @@ function VanguardCard() {
       whileHover={{ y: -12, transition: { type: 'spring', stiffness: 300 } }}
       className="card-vanguard glass-card relative flex flex-col p-8 overflow-hidden"
     >
-      <div className="card-tag" style={{ color: '#888888', fontSize: 10, letterSpacing: '0.4em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 12 }}>
+      <div className="card-tag" style={{ color: 'rgba(240,231,213,0.85)', fontFamily: "'Space Grotesk', system-ui, sans-serif", fontSize: 10, letterSpacing: '0.4em', fontWeight: 500, textTransform: 'uppercase', marginBottom: 12 }}>
         NIVEL 2 · PLATINO
       </div>
-      <h3 className="font-playfair text-3xl font-bold mb-1" style={{ color: '#F0E7D5' }}>VANGUARD</h3>
-      <p className="font-montserrat text-sm mb-6" style={{ color: 'rgba(240,231,213,0.6)', letterSpacing: '0.05em' }}>
+      <h3 className="font-display text-3xl font-bold mb-1" style={{ color: '#F0E7D5' }}>VANGUARD</h3>
+      <p className="font-body text-sm mb-6" style={{ color: 'rgba(240,231,213,0.85)', letterSpacing: '0.05em' }}>
         El Reconocimiento
       </p>
-      <p className="font-montserrat text-sm mb-2" style={{ color: 'rgba(240,231,213,0.7)', lineHeight: 1.7 }}>
+      <p className="font-body text-base mb-2" style={{ color: 'rgba(240,231,213,0.85)', lineHeight: 1.7 }}>
         Para quienes ya saben lo que valen.
       </p>
-      <p className="font-montserrat text-xs mb-8" style={{ color: 'rgba(240,231,213,0.4)', fontStyle: 'italic', lineHeight: 1.6 }}>
+      <p className="font-body text-xs mb-8" style={{ color: 'rgba(240,231,213,0.85)', fontStyle: 'italic', lineHeight: 1.6 }}>
         El salto de una presencia digital a un sistema que trabaja por vos.
       </p>
 
       <div className="flex-grow mb-8">
-        <p className="font-montserrat text-[10px] uppercase tracking-widest mb-4" style={{ color: 'rgba(136,136,136,0.7)' }}>Fases</p>
+        <p className="font-display text-[10px] uppercase tracking-widest mb-4 font-medium" style={{ color: 'rgba(240,231,213,0.85)' }}>Fases</p>
         {[
           ['Auditoría profunda y UX avanzado', '3–4 sem.'],
           ['Motor Core e Integraciones',        '6–8 sem.'],
           ['Refinamiento y Optimización',        '2–3 sem.'],
         ].map(([fase, tiempo]) => (
           <div key={fase} className="flex justify-between items-start mb-3">
-            <span className="font-montserrat text-sm" style={{ color: 'rgba(240,231,213,0.8)' }}>{fase}</span>
-            <span className="font-montserrat text-xs ml-4 shrink-0" style={{ color: 'rgba(240,231,213,0.45)' }}>{tiempo}</span>
+            <span className="font-body text-base" style={{ color: 'rgba(240,231,213,0.85)' }}>{fase}</span>
+            <span className="font-body text-xs ml-4 shrink-0" style={{ color: 'rgba(240,231,213,0.85)' }}>{tiempo}</span>
           </div>
         ))}
       </div>
@@ -125,7 +125,7 @@ function VanguardCard() {
       </div>
 
       <button
-        className="font-montserrat text-sm flex items-center gap-3 transition-all duration-300"
+        className="font-body text-sm flex items-center gap-3 transition-all duration-300"
         style={{ color: '#D4AF37', letterSpacing: '0.15em' }}
         onClick={() => scrollToContact('cotizacion')}
         onMouseEnter={e => e.currentTarget.style.color = '#F4C842'}
@@ -248,7 +248,7 @@ function ZenithModal({ onClose }) {
 
           {/* Label */}
           <p
-            className="font-montserrat uppercase"
+            className="font-display uppercase font-medium"
             style={{ color: '#D4AF37', fontSize: '0.7rem', letterSpacing: '0.4em', marginBottom: 12 }}
           >
             Membresía Exclusiva
@@ -256,7 +256,7 @@ function ZenithModal({ onClose }) {
 
           {/* Título */}
           <h2
-            className="font-montserrat font-bold"
+            className="font-body font-bold"
             style={{ color: '#D4AF37', fontSize: '2.8rem', lineHeight: 1, marginBottom: 20 }}
           >
             ZENITH
@@ -267,8 +267,8 @@ function ZenithModal({ onClose }) {
 
           {/* Subtexto */}
           <p
-            className="font-montserrat italic"
-            style={{ color: 'rgba(240,231,213,0.7)', marginBottom: 32 }}
+            className="font-body italic"
+            style={{ color: 'rgba(240,231,213,0.85)', marginBottom: 32 }}
           >
             Acceso por invitación o méritos del negocio.
           </p>
@@ -288,7 +288,7 @@ function ZenithModal({ onClose }) {
             ].map((item) => (
               <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
                 <span style={{ color: '#D4AF37', flexShrink: 0, marginTop: 2 }}>✦</span>
-                <span className="font-montserrat" style={{ color: 'rgba(240,231,213,0.8)', fontSize: '0.9rem', lineHeight: 2 }}>
+                <span className="font-body" style={{ color: 'rgba(240,231,213,0.85)', fontSize: '1rem', lineHeight: 2 }}>
                   {item}
                 </span>
               </div>
@@ -299,14 +299,14 @@ function ZenithModal({ onClose }) {
           <div style={{ borderTop: '1px solid rgba(212,175,55,0.15)', marginBottom: 24 }} />
 
           {/* Precio */}
-          <p className="font-montserrat font-bold" style={{ color: '#D4AF37', fontSize: '1.3rem', marginBottom: 24 }}>
+          <p className="font-body font-bold" style={{ color: '#D4AF37', fontSize: '1.3rem', marginBottom: 24 }}>
             desde $2.500.000 ARS
           </p>
 
           {/* Botón */}
           <button
             onClick={handleApply}
-            className="font-montserrat"
+            className="font-body"
             style={{
               background: '#D4AF37',
               color: '#0A0A0A',
@@ -329,7 +329,7 @@ function ZenithModal({ onClose }) {
           </button>
 
           {/* Texto chico */}
-          <p className="font-montserrat" style={{ color: 'rgba(240,231,213,0.4)', fontSize: '0.75rem' }}>
+          <p className="font-body" style={{ color: 'rgba(240,231,213,0.85)', fontSize: '0.75rem' }}>
             La primera conversación es sin costo y sin compromiso.
           </p>
         </div>
@@ -378,11 +378,11 @@ function ZenithCard({ onOpenModal }) {
       <div style={{ color: '#D4AF37', fontSize: 10, letterSpacing: '0.4em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 12 }}>
         MEMBRESÍA EXCLUSIVA
       </div>
-      <h3 className="font-playfair text-4xl font-bold mb-1" style={{ color: '#D4AF37' }}>ZENITH</h3>
-      <p className="font-montserrat text-sm mb-6" style={{ color: '#F0E7D5', letterSpacing: '0.08em', opacity: 0.9 }}>
+      <h3 className="font-display text-4xl font-bold mb-1" style={{ color: '#D4AF37' }}>ZENITH</h3>
+      <p className="font-body text-sm mb-6" style={{ color: '#F0E7D5', letterSpacing: '0.08em', opacity: 0.9 }}>
         El Universo Privado
       </p>
-      <p className="font-montserrat text-sm mb-8" style={{ color: 'rgba(240,231,213,0.75)', lineHeight: 1.7, fontStyle: 'italic' }}>
+      <p className="font-body text-base mb-8" style={{ color: 'rgba(240,231,213,0.85)', lineHeight: 1.7, fontStyle: 'italic' }}>
         Para quienes no piden, eligen.
       </p>
 
@@ -397,7 +397,7 @@ function ZenithCard({ onOpenModal }) {
         ].map(feature => (
           <div key={feature} className="flex items-start gap-3 mb-4">
             <span style={{ color: '#D4AF37', flexShrink: 0, marginTop: 1 }}>✦</span>
-            <span className="font-montserrat text-sm" style={{ color: 'rgba(240,231,213,0.85)' }}>{feature}</span>
+            <span className="font-body text-base" style={{ color: 'rgba(240,231,213,0.85)' }}>{feature}</span>
           </div>
         ))}
       </div>
@@ -407,7 +407,7 @@ function ZenithCard({ onOpenModal }) {
       </div>
 
       <button
-        className="font-montserrat text-sm font-bold uppercase tracking-widest py-4 px-8 rounded-sm transition-all duration-400 mb-4"
+        className="font-display text-sm font-medium uppercase tracking-widest py-4 px-8 rounded-sm transition-all duration-400 mb-4"
         style={{ background: '#D4AF37', color: '#0A0A0A', letterSpacing: '0.2em' }}
         onClick={onOpenModal}
         onMouseEnter={e => { e.currentTarget.style.background = '#F0C84A'; e.currentTarget.style.boxShadow = '0 0 30px rgba(212,175,55,0.4)'; }}
@@ -416,7 +416,7 @@ function ZenithCard({ onOpenModal }) {
         Aplicar a Zenith →
       </button>
 
-      <p className="font-montserrat text-center" style={{ color: 'rgba(240,231,213,0.40)', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
+      <p className="font-body text-center" style={{ color: 'rgba(240,231,213,0.85)', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
         Acceso por invitación o méritos del negocio
       </p>
     </motion.div>
@@ -441,10 +441,10 @@ export default function MembershipSection() {
     <div className="relative w-full min-h-screen flex items-center justify-center py-32 overflow-hidden" style={{ zIndex: 10 }}>
       <div className="w-full max-w-6xl mx-auto px-6">
         <div className="text-center mb-16">
-          <p className="font-montserrat text-[10px] uppercase tracking-[0.4em] mb-4" style={{ color: '#D4AF37' }}>
+          <p className="font-display text-[10px] uppercase tracking-[0.4em] mb-4 font-medium" style={{ color: '#D4AF37' }}>
             Niveles de Colaboración
           </p>
-          <h2 className="membership-section-title font-playfair text-4xl md:text-5xl font-bold" style={{ color: '#F0E7D5' }}>
+          <h2 className="membership-section-title font-display text-4xl md:text-5xl font-bold" style={{ color: '#F0E7D5' }}>
             Elige tu Universo
           </h2>
         </div>
