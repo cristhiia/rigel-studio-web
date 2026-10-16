@@ -5,6 +5,8 @@ const NAV_LINKS = [
   ['Inicio',           '/'],
   ['Nosotros',         '/#filosofia'],
   ['Casos de Estudio', '/#casos'],
+  ['Productos',        '/#productos'],
+  ['Keelwise',         '/keelwise'],
   ['Niveles',          '/#planes'],
   ['Tecnologías',      '/#tecnologias'],
   ['Blog',             '/blog'],
@@ -18,10 +20,17 @@ const CONTACT_ITEMS = [
   { label: 'linkedin.com/company/rigel-studio', href: 'https://www.linkedin.com/company/rigel-studio' },
 ];
 
-const colTitle = {
+const legalLink = {
   fontFamily: "Inter, system-ui, sans-serif",
-  fontSize: '0.7rem',
-  fontWeight: 600,
+  fontSize: '0.85rem',
+  color: 'rgba(240,231,213,0.85)',
+  textDecoration: 'none',
+};
+
+const colTitle = {
+  fontFamily: "'Space Grotesk', system-ui, sans-serif",
+  fontSize: '0.75rem',
+  fontWeight: 500,
   textTransform: 'uppercase',
   letterSpacing: '0.25em',
   color: '#D4AF37',
@@ -141,6 +150,16 @@ export default function Footer() {
           <span style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: '0.8rem', color: 'rgba(240,231,213,0.85)' }}>
             © 2026 Rigel Studio. Todos los derechos reservados.
           </span>
+          <nav aria-label="Legales" style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+            <Link to="/terminos" style={legalLink}>Términos</Link>
+            <Link to="/privacidad" style={legalLink}>Privacidad</Link>
+            <Link
+              to="/arrepentimiento"
+              style={{ ...legalLink, color: '#D4AF37', border: '1px solid rgba(212,175,55,0.5)', padding: '6px 12px' }}
+            >
+              Botón de arrepentimiento
+            </Link>
+          </nav>
           <span style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: '0.8rem', color: 'rgba(240,231,213,0.85)' }}>
             Hecho con ✦ en San Juan, Argentina
           </span>

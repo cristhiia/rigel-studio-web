@@ -6,6 +6,7 @@ import Lenis from '@studio-freight/lenis';
 import Hero from '../sections/Hero';
 import Philosophy from '../sections/Philosophy';
 import Cases from '../sections/Cases';
+import Products from '../sections/Products';
 import TechStack from '../sections/TechStack';
 import MembershipSection from '../sections/MembershipSection';
 import FAQ from '../sections/FAQ';
@@ -23,6 +24,7 @@ const NAV_DESKTOP = [
   ['Inicio',    '#inicio'],
   ['Nosotros',  '#filosofia'],
   ['Servicios', '#casos'],
+  ['Productos', '#productos'],
   ['Contacto',  '#contacto'],
 ];
 
@@ -30,6 +32,7 @@ const NAV_MOBILE = [
   ['Inicio',               '#inicio'],
   ['Nosotros',             '#filosofia'],
   ['Servicios',            '#casos'],
+  ['Productos',            '#productos'],
   ['Contacto',             '#contacto'],
   ['Tecnologías',          '#tecnologias'],
   ['Preguntas frecuentes', '#faq'],
@@ -144,7 +147,7 @@ export default function Layout() {
     const flashObs = new IntersectionObserver((entries) => {
       entries.forEach(e => { if (e.isIntersecting) fireFlash(); });
     }, { threshold: 0.15 });
-    ['#filosofia', '#casos', '#tecnologias', '#planes', '#faq', '#contacto'].forEach(id => {
+    ['#filosofia', '#casos', '#productos', '#tecnologias', '#planes', '#faq', '#contacto'].forEach(id => {
       const el = document.querySelector(id);
       if (el) flashObs.observe(el);
     });
@@ -455,6 +458,10 @@ export default function Layout() {
 
         <section id="casos" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
           <Cases onSelectCase={setSelectedCase} />
+        </section>
+
+        <section id="productos" className="fade-section w-full relative" style={{ zIndex: 10 }}>
+          <Products />
         </section>
 
         <section id="planes" className="fade-section w-full relative" style={{ zIndex: 10 }}>
