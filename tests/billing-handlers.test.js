@@ -9,10 +9,6 @@ import webhook from '../api/billing/webhook.js'
 import status from '../api/billing/status.js'
 import download from '../api/billing/download.js'
 import adminSummary from '../api/admin/summary.js'
-import kwSubscribe from '../api/keelwise/subscribe.js'
-import kwWebhook from '../api/keelwise/webhook.js'
-import kwStatus from '../api/keelwise/status.js'
-import kwDownload from '../api/keelwise/download.js'
 
 const ENV = {
   MP_ACCESS_TOKEN: 'TEST-token',
@@ -204,13 +200,6 @@ describe('POST /api/billing/webhook', () => {
     expect(res.statusCode).toBe(200)
     expect(await store.getEntitlement('ana@mail.com', 'plantilla-kiosco')).toMatchObject({ status: 'active' })
   })
-
-  it('/api/keelwise/webhook procesa igual', async () => {
-    const { order } = await subscribe()
-    routeMp({ 'GET /preapproval/pre1': () => preapproval(order.id) })
-    expect((await call(kwWebhook, signedReq({ eventId: 'evt-kw' }))).statusCode).toBe(200)
-    expect((await store.getEntitlement('ana@mail.com', 'keelwise')).status).toBe('trial')
-  })
 })
 
 describe('GET /api/billing/status y /download', () => {
@@ -263,22 +252,6 @@ describe('GET /api/billing/status y /download', () => {
     routeMp({ 'GET /v1/payments/777': () => ({ id: 777, status: 'approved', external_reference: order.id, transaction_amount: 43500, currency_id: 'ARS' }) })
     const res = await call(download, get({ product: 'plantilla-kiosco', external_reference: order.id, payment_id: '777' }))
     expect(res.body).toEqual({ type: 'web_access', url: 'https://kiosco.example/acceso' })
-  })
-})
-
-describe('/api/keelwise/* (envoltorios)', () => {
-  it('subscribe mantiene { init_point } y usa product=keelwise', async () => {
-    routeMp({ 'POST /preapproval': () => ({ id: 'pre1', init_point: 'https://mp.example/sub' }) })
-    const res = await call(kwSubscribe, post({ email: 'ana@mail.com', product: 'plantilla-kiosco' }))
-    expect(res.body).toEqual({ init_point: 'https://mp.example/sub' })
-    expect([...store.db.orders.values()][0].product_slug).toBe('keelwise')
-  })
-
-  it('status y download con preapproval_id', async () => {
-    const { order } = await subscribe()
-    routeMp({ 'GET /preapproval/pre1': () => preapproval(order.id) })
-    expect((await call(kwStatus, get({ preapproval_id: 'pre1' }))).body).toEqual({ active: true, status: 'trial' })
-    expect((await call(kwDownload, get({ preapproval_id: 'pre1' }))).body.url).toContain('keelwise.apk')
   })
 })
 

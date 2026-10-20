@@ -5,7 +5,7 @@ import { createRateLimiter } from '../api/_lib/http.js'
 import {
   buildPreapprovalPayload,
   buildPreferencePayload,
-  buildSummary,
+  composeSummary,
   checkout,
   decideEntitlement,
   fallbackPriceEnvName,
@@ -109,9 +109,13 @@ describe('email', () => {
   })
 
   it('rechaza formatos inválidos', () => {
-    for (const bad of ['', 'ana', 'ana@', '@gmail.com', 'ana@gmail', 'ana @gmail.com', null, 42]) {
-      expect(isValidEmail(bad)).toBe(false)
-    }
+    const malos = [
+      '', 'ana', 'ana@', '@gmail.com', 'ana@gmail', 'ana @gmail.com', null, 42, undefined, {}, ['a@b.com'],
+      'a<b>@x.com', 'a"b@x.com', "a';drop table x;--@x.com", 'a\u0000@x.com', 'a\n@x.com', 'a@x.com\nBcc: z@z.com',
+      'a..b@x.com', '.a@x.com', 'a.@x.com', 'a@x..com', 'a@-x.com', 'a@x-.com', 'a@x.c', 'a@@x.com', 'a@b@x.com',
+      'ñ@x.com', 'a@x.com,b@x.com', `${'a'.repeat(65)}@x.com`,
+    ]
+    for (const bad of malos) expect(isValidEmail(bad), JSON.stringify(bad)).toBe(false)
     expect(isValidEmail(`${'a'.repeat(250)}@x.com`)).toBe(false)
   })
 })
@@ -406,33 +410,31 @@ describe('panel: acceso y resumen', () => {
   })
 
   it('sin datos: todo en cero y sin pedidos', () => {
-    const s = buildSummary({ products: [KEELWISE], entitlements: [], orders: [], now: NOW })
-    expect(s.totals).toMatchObject({ active: 0, trial: 0, past_due: 0, cancelled: 0, mrr_ars: 0 })
-    expect(s.products).toHaveLength(1)
+    const s = composeSummary({ products: [], recent_orders: [] }, NOW)
+    expect(s.totals).toEqual({ active: 0, trial: 0, past_due: 0, cancelled: 0, mrr_ars: 0, one_time_month_ars: 0, new_this_month: 0, churned_this_month: 0 })
+    expect(s.products).toEqual([])
     expect(s.recent_orders).toEqual([])
+    expect(s.month_start).toBe(monthStartArgentina(NOW).toISOString())
   })
 
-  it('cuenta por estado y suma el MRR de las suscripciones activas', () => {
-    const orders = [
-      { id: 'o1', product_slug: 'keelwise', billing_type: 'subscription', status: 'authorized', amount_ars: 14500, created_at: '2026-10-05T00:00:00Z', email: 'a@x.com' },
-      { id: 'o2', product_slug: 'keelwise', billing_type: 'subscription', status: 'authorized', amount_ars: 12000, created_at: '2026-09-05T00:00:00Z', email: 'b@x.com' },
-      { id: 'o3', product_slug: 'keelwise', billing_type: 'subscription', status: 'authorized', amount_ars: 14500, created_at: '2026-10-18T00:00:00Z', email: 'c@x.com' },
-      { id: 'o4', product_slug: 'plantilla-kiosco', billing_type: 'one_time', status: 'approved', amount_ars: 43500, created_at: '2026-10-10T00:00:00Z', paid_at: '2026-10-10T00:00:00Z', email: 'd@x.com' },
-    ]
-    const entitlements = [
-      { email: 'a@x.com', product_slug: 'keelwise', status: 'active', source_order_id: 'o1', created_at: '2026-10-05T00:00:00Z', updated_at: '2026-10-12T00:00:00Z' },
-      { email: 'b@x.com', product_slug: 'keelwise', status: 'active', source_order_id: 'o2', created_at: '2026-09-05T00:00:00Z', updated_at: '2026-10-05T00:00:00Z' },
-      { email: 'c@x.com', product_slug: 'keelwise', status: 'trial', source_order_id: 'o3', created_at: '2026-10-18T00:00:00Z', updated_at: '2026-10-18T00:00:00Z' },
-      { email: 'e@x.com', product_slug: 'keelwise', status: 'cancelled', source_order_id: null, created_at: '2026-08-01T00:00:00Z', updated_at: '2026-10-02T00:00:00Z' },
-      { email: 'd@x.com', product_slug: 'plantilla-kiosco', status: 'active', source_order_id: 'o4', created_at: '2026-10-10T00:00:00Z', updated_at: '2026-10-10T00:00:00Z' },
-    ]
-    const s = buildSummary({ products: [KEELWISE, PLANTILLA], entitlements, orders, now: NOW })
-    const kw = s.products.find(p => p.slug === 'keelwise')
-    expect(kw).toMatchObject({ active: 2, trial: 1, past_due: 0, cancelled: 1, mrr_ars: 26500, new_this_month: 2, churned_this_month: 1 })
-    const pk = s.products.find(p => p.slug === 'plantilla-kiosco')
-    expect(pk).toMatchObject({ active: 1, mrr_ars: 0, one_time_month_ars: 43500 })
-    expect(s.totals).toMatchObject({ active: 3, mrr_ars: 26500 })
-    expect(s.recent_orders.map(o => o.id)).toEqual(['o3', 'o4', 'o1', 'o2'])
+  it('suma los totales de cada producto y normaliza números (la base los puede mandar como texto)', () => {
+    const s = composeSummary({
+      products: [
+        { slug: 'keelwise', name: 'Keelwise', billing_type: 'subscription', on_sale: true, active: 2, trial: 1, past_due: 0, cancelled: 1, mrr_ars: '26500.00', one_time_month_ars: 0, new_this_month: 2, churned_this_month: 1 },
+        { slug: 'plantilla', name: 'Plantilla', billing_type: 'one_time', on_sale: false, active: 1, trial: 0, past_due: 0, cancelled: 0, mrr_ars: 0, one_time_month_ars: '43500', new_this_month: 1, churned_this_month: 0 },
+      ],
+      recent_orders: [{ id: 'o1', product_slug: 'keelwise', email: 'a@x.com', billing_type: 'subscription', status: 'authorized', amount_ars: '14500.00', created_at: '2026-10-05T00:00:00Z', paid_at: null }],
+    }, NOW)
+    expect(s.totals).toMatchObject({ active: 3, trial: 1, cancelled: 1, mrr_ars: 26500, one_time_month_ars: 43500, new_this_month: 3, churned_this_month: 1 })
+    expect(s.products[1].on_sale).toBe(false)
+    expect(s.recent_orders[0]).toMatchObject({ amount_ars: 14500, paid_at: null })
+  })
+
+  it('no confía en el largo de recent_orders ni en campos faltantes', () => {
+    const many = Array.from({ length: 50 }, (_, i) => ({ id: `o${i}`, created_at: '2026-10-01T00:00:00Z' }))
+    const s = composeSummary({ products: [{ slug: 'x', name: 'X', billing_type: 'one_time' }], recent_orders: many }, NOW)
+    expect(s.recent_orders).toHaveLength(20)
+    expect(s.products[0]).toMatchObject({ active: 0, mrr_ars: 0, on_sale: false })
   })
 })
 
