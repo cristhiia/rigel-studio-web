@@ -49,8 +49,6 @@ export async function createSupabaseStore({ url, serviceRoleKey }) {
     getOrder: id => one(client.from('billing_orders').select('*').eq('id', id), 'getOrder'),
     findOrderByPreapproval: id =>
       one(client.from('billing_orders').select('*').eq('mp_preapproval_id', id), 'findOrderByPreapproval'),
-    listOrders: ({ limit = 5000 } = {}) =>
-      many(client.from('billing_orders').select('*').order('created_at', { ascending: false }).limit(limit), 'listOrders'),
 
     // ── Permisos ──
     getEntitlement: (email, productSlug) =>
@@ -62,7 +60,6 @@ export async function createSupabaseStore({ url, serviceRoleKey }) {
       const { error } = await client.from('billing_entitlements').upsert(row, { onConflict: 'email,product_slug' })
       if (error) fail('upsertEntitlement', error)
     },
-    listEntitlements: () => many(client.from('billing_entitlements').select('*'), 'listEntitlements'),
 
     // ── Eventos del webhook ──
     // Inserta el evento si no existe y devuelve si ya se había procesado.
@@ -80,6 +77,32 @@ export async function createSupabaseStore({ url, serviceRoleKey }) {
         .update({ processed_at: new Date().toISOString() })
         .eq('id', id)
       if (error) fail('markEventProcessed', error)
+    },
+
+    // ── Escala: todo se calcula en la base (ver billing.sql) ──
+    // Cuenta un intento y dice si sigue dentro del límite.
+    async rateHit(key, limit, windowSeconds) {
+      const { data, error } = await client.rpc('billing_rate_hit', { p_key: key, p_limit: limit, p_window_seconds: windowSeconds })
+      if (error) fail('rateHit', error)
+      return data === true
+    },
+    // { products: [...], recent_orders: [...] } del mes que empieza en `monthStart`.
+    async adminSummary(monthStart) {
+      const { data, error } = await client.rpc('billing_admin_summary', { p_month_start: monthStart.toISOString() })
+      if (error) fail('adminSummary', error)
+      return data || { products: [], recent_orders: [] }
+    },
+    // Suscripciones con permiso por vencer, para volver a consultarlas en MP.
+    async dueOrders(limit) {
+      const { data, error } = await client.rpc('billing_due_orders', { p_limit: limit })
+      if (error) fail('dueOrders', error)
+      return data || []
+    },
+    // Limpieza diaria. Devuelve cuánto limpió.
+    async maintenance() {
+      const { data, error } = await client.rpc('billing_maintenance')
+      if (error) fail('maintenance', error)
+      return data || {}
     },
 
     // ── Storage ──

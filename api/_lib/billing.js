@@ -2,14 +2,14 @@
 //
 // Cada producto es una fila en billing_products. Este módulo crea el cobro
 // (suscripción o pago único), procesa las notificaciones de MP, guarda pedidos
-// y permisos y resuelve la entrega. Los handlers de /api/billing/* y los
-// envoltorios de /api/keelwise/* son una línea que llama a handle*().
+// y permisos y resuelve la entrega. Los handlers de /api/billing/* son una
+// línea que llama a handle*().
 //
 // Todo lo que toca red llega por `ctx` ({ store, mp, env, now, log }) para
 // poder testearlo con mocks (ver tests/billing*.test.js).
 import { createMpClient, isValidMpId, verifySignature } from './mercadopago.js'
 import { createSupabaseStore } from './billingStore.js'
-import { bearerToken, clientIp, createRateLimiter, send, withDeadline } from './http.js'
+import { bearerToken, clientIp, createRateLimiter, hashKey, logSafe, safeEqual, send, withDeadline } from './http.js'
 
 export { isValidMpId }
 
@@ -28,7 +28,9 @@ export class BillingError extends Error {
 }
 
 // ── Validaciones ─────────────────────────────────────────────────────────
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+// Solo ASCII y caracteres de email comunes: sin espacios, comillas, ángulos ni
+// caracteres de control. El email viaja a Mercado Pago y se muestra en /admin.
+const EMAIL_RE = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function normalizeEmail(email) {
@@ -37,7 +39,7 @@ export function normalizeEmail(email) {
 
 export function isValidEmail(email) {
   const e = normalizeEmail(email)
-  return e.length > 0 && e.length <= 254 && EMAIL_RE.test(e)
+  return e.length > 0 && e.length <= 254 && !e.includes('..') && !e.startsWith('.') && !e.includes('.@') && EMAIL_RE.test(e)
 }
 
 export const isValidSlug = s => typeof s === 'string' && s.length <= 64 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(s)
@@ -325,6 +327,10 @@ export async function checkout({ product: slug, email }, ctx) {
   }
 
   const payer = normalizeEmail(email)
+  const perEmail = LIMITS.checkoutEmail
+  if (!(await allow(store, `co:email:${hashKey(`${slug}|${payer}`)}`, perEmail.limit, perEmail.windowSeconds, log))) {
+    throw new BillingError(429, 'Ya probaste varias veces con este email. Esperá un rato o escribinos por WhatsApp.')
+  }
   const isSubscription = product.billing_type === 'subscription'
   // La prueba gratis es para la primera vez: quien ya tuvo acceso no la repite.
   let trialDays = 0
@@ -447,39 +453,24 @@ export function monthStartArgentina(now) {
 
 const round2 = n => Math.round(n * 100) / 100
 
-export function buildSummary({ products, entitlements, orders, now = new Date() }) {
-  const monthStart = monthStartArgentina(now)
-  const inMonth = d => Boolean(d) && new Date(d) >= monthStart
-  const ordersById = new Map(orders.map(o => [o.id, o]))
-
-  const rows = products.map(p => {
-    const ents = entitlements.filter(e => e.product_slug === p.slug)
-    const count = statuses => ents.filter(e => statuses.includes(e.status)).length
-    const mrr =
-      p.billing_type === 'subscription'
-        ? ents
-            .filter(e => e.status === 'active')
-            .reduce((sum, e) => sum + Number((ordersById.get(e.source_order_id) || {}).amount_ars || 0), 0)
-        : 0
-    const oneTimeMonth = orders
-      .filter(o => o.product_slug === p.slug && o.billing_type === 'one_time' && o.status === 'approved' && inMonth(o.paid_at))
-      .reduce((sum, o) => sum + Number(o.amount_ars || 0), 0)
-    return {
-      slug: p.slug,
-      name: p.name,
-      billing_type: p.billing_type,
-      on_sale: Boolean(p.active),
-      active: count(['active']),
-      trial: count(['trial']),
-      past_due: count(['past_due']),
-      cancelled: count(['cancelled', 'expired']),
-      mrr_ars: round2(mrr),
-      one_time_month_ars: round2(oneTimeMonth),
-      new_this_month: ents.filter(e => inMonth(e.created_at)).length,
-      churned_this_month: ents.filter(e => ['cancelled', 'expired'].includes(e.status) && inMonth(e.updated_at)).length,
-    }
-  })
-
+// El resumen se calcula en la base (billing_admin_summary): no baja todos los
+// permisos y pedidos, así que sigue andando con miles de clientes. Acá solo se
+// suman los totales.
+export function composeSummary({ products = [], recent_orders = [] }, now = new Date()) {
+  const rows = products.map(p => ({
+    slug: p.slug,
+    name: p.name,
+    billing_type: p.billing_type,
+    on_sale: Boolean(p.on_sale),
+    active: Number(p.active) || 0,
+    trial: Number(p.trial) || 0,
+    past_due: Number(p.past_due) || 0,
+    cancelled: Number(p.cancelled) || 0,
+    mrr_ars: round2(Number(p.mrr_ars) || 0),
+    one_time_month_ars: round2(Number(p.one_time_month_ars) || 0),
+    new_this_month: Number(p.new_this_month) || 0,
+    churned_this_month: Number(p.churned_this_month) || 0,
+  }))
   const sum = key => round2(rows.reduce((s, r) => s + r[key], 0))
   const totals = {
     active: sum('active'),
@@ -491,11 +482,12 @@ export function buildSummary({ products, entitlements, orders, now = new Date() 
     new_this_month: sum('new_this_month'),
     churned_this_month: sum('churned_this_month'),
   }
-
-  const recent_orders = [...orders]
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 20)
-    .map(o => ({
+  return {
+    generated_at: now.toISOString(),
+    month_start: monthStartArgentina(now).toISOString(),
+    totals,
+    products: rows,
+    recent_orders: recent_orders.slice(0, 20).map(o => ({
       id: o.id,
       product_slug: o.product_slug,
       email: o.email,
@@ -504,9 +496,8 @@ export function buildSummary({ products, entitlements, orders, now = new Date() 
       amount_ars: Number(o.amount_ars),
       created_at: o.created_at,
       paid_at: o.paid_at || null,
-    }))
-
-  return { generated_at: now.toISOString(), month_start: monthStart.toISOString(), totals, products: rows, recent_orders }
+    })),
+  }
 }
 
 // ── HTTP ─────────────────────────────────────────────────────────────────
@@ -517,6 +508,10 @@ export const deps = {
   now: () => new Date(),
   log: console,
 }
+
+// Valor de texto/número que llegó de afuera; cualquier otra cosa (objeto,
+// arreglo, null) cuenta como vacío. Evita que String({toString: 1}) tire un 500.
+const scalar = v => (typeof v === 'string' || typeof v === 'number' ? String(v) : '')
 
 const hasDb = env => Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY)
 
@@ -530,11 +525,30 @@ async function buildCtx(env, mpOpts) {
   }
 }
 
+// Primera capa: contador en memoria de cada instancia (barato, frena ráfagas).
 const limiters = {
   checkout: createRateLimiter({ limit: 10, windowMs: 60_000 }),
   status: createRateLimiter({ limit: 30, windowMs: 60_000 }),
   download: createRateLimiter({ limit: 10, windowMs: 60_000 }),
   admin: createRateLimiter({ limit: 30, windowMs: 60_000 }),
+}
+
+// Segunda capa: contador en la base, compartido entre todas las instancias del
+// sitio (las de memoria no se ven entre sí). Si la base no responde se deja
+// pasar: es preferible no cortar una venta a bloquear a todos por una falla.
+export async function allow(store, key, limit, windowSeconds, log = console) {
+  try {
+    return await store.rateHit(key, limit, windowSeconds)
+  } catch (error) {
+    log.warn('[billing] límite de intentos no disponible, se permite', { message: logSafe(error.message, 120) })
+    return true
+  }
+}
+export const LIMITS = {
+  checkoutIp: { limit: 30, windowSeconds: 600 }, // varios usuarios pueden compartir IP (datos móviles)
+  checkoutEmail: { limit: 5, windowSeconds: 3600 },
+  statusIp: { limit: 60, windowSeconds: 60 },
+  downloadIp: { limit: 10, windowSeconds: 60 },
 }
 
 const tooMany = res => send(res, 429, { error: 'Demasiadas consultas, esperá un minuto' })
@@ -546,12 +560,11 @@ function fromError(res, error, scope) {
 }
 
 // GET  ?product=slug → datos públicos del producto (nombre, precio, prueba).
-// POST {product, email} → { url } de pago. `responseKey` mantiene el
-// contrato viejo de /api/keelwise/subscribe ({ init_point }).
-export async function handleCheckout(req, res, { product: fixedProduct, responseKey = 'url' } = {}) {
+// POST {product, email} → { url } de pago.
+export async function handleCheckout(req, res) {
   const env = process.env
   if (req.method === 'GET') {
-    const slug = fixedProduct || String((req.query && req.query.product) || '')
+    const slug = (req.query && req.query.product) || ''
     if (!isValidSlug(slug)) return send(res, 400, { error: 'Producto inválido' })
     if (!hasDb(env)) return send(res, 503, { error: 'No disponible' })
     try {
@@ -566,8 +579,8 @@ export async function handleCheckout(req, res, { product: fixedProduct, response
   if (req.method !== 'POST') return send(res, 405, { error: 'Método no permitido' })
   if (!limiters.checkout(clientIp(req))) return tooMany(res)
 
-  const body = req.body || {}
-  const slug = fixedProduct || body.product
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const slug = body.product
   if (!isValidSlug(slug)) return send(res, 400, { error: 'Producto inválido' })
   if (!isValidEmail(body.email)) return send(res, 400, { error: 'Email inválido' })
   if (!hasDb(env) || !env.MP_ACCESS_TOKEN) {
@@ -576,8 +589,11 @@ export async function handleCheckout(req, res, { product: fixedProduct, response
   }
 
   try {
-    const { url } = await checkout({ product: slug, email: body.email }, await buildCtx(env))
-    return send(res, 200, { [responseKey]: url })
+    const ctx = await buildCtx(env)
+    const perIp = LIMITS.checkoutIp
+    if (!(await allow(ctx.store, `co:ip:${hashKey(clientIp(req))}`, perIp.limit, perIp.windowSeconds, ctx.log))) return tooMany(res)
+    const { url } = await checkout({ product: slug, email: body.email }, ctx)
+    return send(res, 200, { url })
   } catch (error) {
     return fromError(res, error, 'checkout')
   }
@@ -591,10 +607,11 @@ export async function handleWebhook(req, res) {
   const env = process.env
   const log = deps.log
   const query = req.query || {}
-  const body = req.body || {}
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
   const headers = req.headers || {}
-  const dataId = String(query['data.id'] || (body.data && body.data.id) || '')
-  const type = String(query.type || body.type || query.topic || '')
+  // Se cortan a un largo razonable: el HMAC no tiene que procesar textos enormes.
+  const dataId = (scalar(query['data.id']) || scalar(body.data && body.data.id)).slice(0, 256)
+  const type = (scalar(query.type) || scalar(body.type) || scalar(query.topic)).slice(0, 64)
 
   const valid = verifySignature({
     signatureHeader: headers['x-signature'],
@@ -603,7 +620,7 @@ export async function handleWebhook(req, res) {
     secret: env.MP_WEBHOOK_SECRET,
   })
   if (!valid) {
-    log.warn('[billing/webhook] firma inválida', { type, dataId })
+    log.warn('[billing/webhook] firma inválida', { type: logSafe(type), dataId: logSafe(dataId) })
     return send(res, 401, { error: 'Firma inválida' })
   }
   if (!hasDb(env) || !env.MP_ACCESS_TOKEN) {
@@ -611,7 +628,7 @@ export async function handleWebhook(req, res) {
     return send(res, 500, { error: 'Configuración incompleta' })
   }
 
-  const rawEventId = String(body.id || headers['x-request-id'] || '')
+  const rawEventId = scalar(body.id) || scalar(headers['x-request-id'])
   const eventId = /^[A-Za-z0-9_-]{1,128}$/.test(rawEventId) ? rawEventId : ''
 
   try {
@@ -628,21 +645,24 @@ export async function handleWebhook(req, res) {
       })(),
       WEBHOOK_DEADLINE_MS,
     )
-    if (!result.handled) log.info('[billing/webhook] sin cambios:', result.reason, { type, dataId })
+    if (!result.handled) log.info('[billing/webhook] sin cambios:', result.reason, { type: logSafe(type), dataId: logSafe(dataId) })
     return send(res, 200, { ok: true })
   } catch (error) {
-    log.error('[billing/webhook] error procesando', { type, dataId, message: error.message })
+    log.error('[billing/webhook] error procesando', { type: logSafe(type), dataId: logSafe(dataId), message: logSafe(error.message, 200) })
     return send(res, 500, { error: 'Error procesando la notificación' })
   }
 }
 
-function accessParams(req, fixedProduct) {
+// Un parámetro repetido (?a=1&a=2) llega como arreglo: se descarta.
+const param = v => (typeof v === 'string' ? v : '')
+
+function accessParams(req) {
   const q = req.query || {}
   return {
-    product: fixedProduct || String(q.product || ''),
-    orderId: String(q.order || q.external_reference || ''),
-    preapprovalId: String(q.preapproval_id || ''),
-    paymentId: String(q.payment_id || q.collection_id || ''),
+    product: param(q.product),
+    orderId: param(q.order) || param(q.external_reference),
+    preapprovalId: param(q.preapproval_id),
+    paymentId: param(q.payment_id) || param(q.collection_id),
   }
 }
 
@@ -653,17 +673,20 @@ function validateAccessParams(p) {
 }
 
 // GET ?product=slug&order=<uuid> | &preapproval_id=<id> [&payment_id=<id>]
-export async function handleStatus(req, res, { product: fixedProduct } = {}) {
+export async function handleStatus(req, res) {
   if (req.method !== 'GET') return send(res, 405, { error: 'Método no permitido' })
   if (!limiters.status(clientIp(req))) return tooMany(res)
-  const params = accessParams(req, fixedProduct)
+  const params = accessParams(req)
   const invalid = validateAccessParams(params)
   if (invalid) return send(res, 400, { error: invalid })
   const env = process.env
   if (!hasDb(env) || !env.MP_ACCESS_TOKEN) return send(res, 503, { error: 'No disponible' })
 
   try {
-    const access = await getAccess(params, await buildCtx(env))
+    const ctx = await buildCtx(env)
+    const perIp = LIMITS.statusIp
+    if (!(await allow(ctx.store, `st:ip:${hashKey(clientIp(req))}`, perIp.limit, perIp.windowSeconds, ctx.log))) return tooMany(res)
+    const access = await getAccess(params, ctx)
     return send(res, 200, { active: access.active, status: (access.entitlement && access.entitlement.status) || null })
   } catch (error) {
     return fromError(res, error, 'status')
@@ -672,10 +695,10 @@ export async function handleStatus(req, res, { product: fixedProduct } = {}) {
 
 // Igual que status, pero si el permiso está activo devuelve la entrega del
 // producto (para 'apk', link firmado de 10 minutos).
-export async function handleDownload(req, res, { product: fixedProduct } = {}) {
+export async function handleDownload(req, res) {
   if (req.method !== 'GET') return send(res, 405, { error: 'Método no permitido' })
   if (!limiters.download(clientIp(req))) return tooMany(res)
-  const params = accessParams(req, fixedProduct)
+  const params = accessParams(req)
   const invalid = validateAccessParams(params)
   if (invalid) return send(res, 400, { error: invalid })
   const env = process.env
@@ -683,6 +706,8 @@ export async function handleDownload(req, res, { product: fixedProduct } = {}) {
 
   try {
     const ctx = await buildCtx(env)
+    const perIp = LIMITS.downloadIp
+    if (!(await allow(ctx.store, `dl:ip:${hashKey(clientIp(req))}`, perIp.limit, perIp.windowSeconds, ctx.log))) return tooMany(res)
     const access = await getAccess(params, ctx)
     if (!access.active) return send(res, 403, { error: 'El acceso no está activo' })
     const product = await ctx.store.getProduct(access.order.product_slug)
@@ -711,14 +736,66 @@ export async function handleAdminSummary(req, res) {
     const store = await deps.createStore(env)
     const user = await store.verifyUser(token)
     if (!isAdminUser(user, admins)) return notFound()
-    const [products, entitlements, orders] = await Promise.all([
-      store.listProducts(),
-      store.listEntitlements(),
-      store.listOrders({ limit: 5000 }),
-    ])
-    return send(res, 200, buildSummary({ products, entitlements, orders, now: deps.now() }))
+    const now = deps.now()
+    return send(res, 200, composeSummary(await store.adminSummary(monthStartArgentina(now)), now))
   } catch (error) {
-    deps.log.error('[admin] error armando el resumen:', error.message)
+    deps.log.error('[admin] error armando el resumen:', logSafe(error.message, 200))
     return send(res, 502, { error: 'No pudimos cargar el resumen' })
+  }
+}
+
+// ── Conciliación diaria (Vercel Cron) ────────────────────────────────────
+// Los avisos de Mercado Pago pueden perderse (caída del sitio, 3 reintentos
+// agotados). Cada día se vuelven a consultar en MP las suscripciones cuyo
+// permiso está por vencer, y se hace la limpieza de la base. Así un aviso
+// perdido nunca deja a un cliente sin acceso (ni con acceso de más) por mucho.
+export const RECONCILE_BATCH = 40
+const RECONCILE_DEADLINE_MS = 25_000
+
+export async function reconcile(ctx, { batch = RECONCILE_BATCH, deadlineMs = RECONCILE_DEADLINE_MS } = {}) {
+  const { store, mp, log = console } = ctx
+  const startedAt = Date.now()
+  const orders = await store.dueOrders(batch)
+  const result = { due: orders.length, checked: 0, changed: 0, failed: 0, skipped: 0 }
+  for (const order of orders) {
+    if (Date.now() - startedAt > deadlineMs) {
+      result.skipped = orders.length - result.checked - result.failed
+      break
+    }
+    try {
+      const pre = await mp.getPreapproval(order.mp_preapproval_id)
+      const before = await store.getEntitlement(order.email, order.product_slug)
+      const r = await syncPreapproval(pre, ctx)
+      result.checked += 1
+      const after = await store.getEntitlement(order.email, order.product_slug)
+      if (r.handled && (!before || !after || before.status !== after.status || before.valid_until !== after.valid_until)) result.changed += 1
+    } catch (error) {
+      result.failed += 1
+      log.error('[billing/reconcile] no se pudo conciliar', { order_id: order.id, message: logSafe(error.message, 200) })
+    }
+  }
+  result.maintenance = await store.maintenance()
+  return result
+}
+
+// GET con `Authorization: Bearer <CRON_SECRET>` (Vercel lo manda solo cuando
+// existe la variable CRON_SECRET). Sin secreto configurado, no responde.
+export async function handleReconcile(req, res) {
+  const notFound = () => send(res, 404, { error: 'No encontrado' })
+  if (req.method !== 'GET') return notFound()
+  const env = process.env
+  if (!env.CRON_SECRET || env.CRON_SECRET.length < 16) {
+    deps.log.error('[billing/reconcile] falta CRON_SECRET (mínimo 16 caracteres)')
+    return notFound()
+  }
+  if (!safeEqual(bearerToken(req), env.CRON_SECRET)) return notFound()
+  if (!hasDb(env) || !env.MP_ACCESS_TOKEN) return send(res, 500, { error: 'Configuración incompleta' })
+  try {
+    const result = await reconcile(await buildCtx(env, { timeoutMs: 5000 }))
+    deps.log.info('[billing/reconcile]', result)
+    return send(res, 200, { ok: true, ...result })
+  } catch (error) {
+    deps.log.error('[billing/reconcile] error:', logSafe(error.message, 200))
+    return send(res, 500, { error: 'Error en la conciliación' })
   }
 }

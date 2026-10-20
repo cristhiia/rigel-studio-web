@@ -1,4 +1,19 @@
 // Utilidades HTTP compartidas por las funciones de /api.
+import crypto from 'node:crypto'
+
+// Hash corto para usar IPs y emails como claves de límite sin guardarlos en claro.
+export const hashKey = value => crypto.createHash('sha256').update(String(value)).digest('hex').slice(0, 32)
+
+// Texto que vino de afuera, seguro para escribir en los logs (sin saltos de
+// línea ni caracteres de control, con largo máximo).
+export const logSafe = (value, max = 64) => String(value ?? '').replace(/[^\w.@:/-]/g, '?').slice(0, max)
+
+// Compara dos secretos sin filtrar información por tiempo.
+export function safeEqual(a, b) {
+  const ha = crypto.createHash('sha256').update(String(a)).digest()
+  const hb = crypto.createHash('sha256').update(String(b)).digest()
+  return crypto.timingSafeEqual(ha, hb)
+}
 
 // Rate limiting básico en memoria (por instancia de función).
 export function createRateLimiter({ limit, windowMs }) {
@@ -27,7 +42,10 @@ export function bearerToken(req) {
 }
 
 export function send(res, status, body, cacheControl = 'no-store') {
-  if (res.setHeader) res.setHeader('Cache-Control', cacheControl)
+  if (res.setHeader) {
+    res.setHeader('Cache-Control', cacheControl)
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+  }
   return res.status(status).json(body)
 }
 

@@ -7,14 +7,14 @@ Vender una app nueva = **una fila en `billing_products` + una landing**.
 
 | pieza | dónde |
 |-------|-------|
-| Esquema (4 tablas + función) | `supabase/migrations/billing.sql` |
+| Esquema (5 tablas + funciones) | `supabase/migrations/billing.sql` (idempotente) |
 | Productos | `supabase/seed/products.sql` |
 | Lógica | `api/_lib/billing.js` (+ `mercadopago.js`, `billingStore.js`, `http.js`) |
-| Endpoints | `api/billing/{checkout,webhook,status,download}.js`, `api/admin/summary.js` |
-| Compatibilidad | `api/keelwise/*`: envoltorios con `product='keelwise'` |
+| Endpoints | `api/billing/{checkout,webhook,status,download,reconcile}.js`, `api/admin/summary.js` (7 funciones de Vercel contando `api/contact.js`; el plan Hobby permite 12) |
 | Precio | `scripts/set-price.js` (`npm run billing:price`) |
 | Panel | `/admin` (solo lectura), login en `/admin/ingresar` |
 | Permisos en las apps | `docs/billing-entitlement.md` |
+| Pruebas | `tests/billing*.test.js` (`npm test`): SQL en Postgres real, escala, seguridad |
 
 ## Agregar un producto
 
@@ -168,12 +168,98 @@ Definiciones del resumen (mes calendario de Argentina):
 
 | dato | cálculo |
 |------|---------|
-| Activos / En prueba / Morosos / Cancelados | permisos por estado (`cancelled` + `expired`) |
+| Activos / En prueba / Morosos / Cancelados | permisos por estado **efectivo**: un permiso `active`/`trial` cuyo vencimiento ya pasó cuenta como cancelado aunque nadie haya actualizado la fila |
 | Ingreso mensual recurrente | suma de `amount_ars` del pedido de cada suscripción `active` (no cuenta pruebas) |
 | Pagos únicos del mes | pedidos `approved` con `paid_at` en el mes |
 | Altas del mes | permisos creados en el mes (primera vez que ese email tuvo acceso) |
 | Bajas del mes | permisos `cancelled`/`expired` actualizados en el mes |
 | Últimos pedidos | los 20 más nuevos, de todos los productos |
+
+## Escala: qué pasa con muchos suscriptores
+
+Cómo está pensado para crecer sin rehacerlo (cifras de referencia, plan Hobby de
+Vercel + Supabase):
+
+| tema | cómo está resuelto |
+|------|--------------------|
+| Cobros mensuales | los hace Mercado Pago, no el sitio. El sitio solo **recibe avisos**: 1 aviso por cobro (~1–3 llamadas a la base y 1 a MP). 1.000 suscriptores = ~1.000 avisos al mes. Es poco para una función serverless |
+| Avisos duplicados o desordenados | cada aviso se deduplica por id y siempre se consulta el **estado real** en MP. Procesar de más no cambia el resultado |
+| Avisos perdidos | **conciliación diaria** (`/api/billing/reconcile`, Vercel Cron, entre las 03:00 y las 04:00 de Argentina: en Hobby Vercel corre el cron en algún momento de esa hora): vuelve a consultar en MP las suscripciones cuyo permiso vence en menos de un día (o venció hace menos de 7) y corrige el estado. Un aviso perdido deja a un cliente con el estado viejo, como mucho, un día |
+| Resumen de `/admin` | se calcula **dentro de la base** (`billing_admin_summary`). El código anterior bajaba hasta 5.000 pedidos y todos los permisos, y PostgREST corta en 1.000 filas sin avisar: con más de 1.000 clientes los números habrían salido mal |
+| Permisos vencidos | el acceso se calcula siempre contra `valid_until` (no depende de un job). La limpieza diaria además marca `expired` los vencidos hace más de 7 días |
+| Límite de intentos | contador **compartido** en la base (`billing_rate_hit`), además del de memoria de cada instancia (que no se ve entre instancias). Checkout: 5 por hora por email+producto y 30 cada 10 min por IP; status: 60/min por IP; descarga: 10/min por IP. Si la tabla de límites falla se deja pasar (no se corta una venta) |
+| Crecimiento de tablas | `billing_webhook_events` y `billing_rate_limits` se limpian solas (45 días / al vencer). `billing_orders` y `billing_entitlements` crecen 1 fila por intento / por cliente: con millones de filas siguen rápidas con los índices creados |
+| Plan de funciones de Vercel | 7 de 12. Se sacaron los 4 envoltorios `api/keelwise/*` (nunca estuvieron en producción) |
+
+Límites a tener presentes (no son del código):
+
+- **Vercel Hobby es para uso personal y no comercial** (lo dice su documentación
+  oficial, "fair use"). Con ventas reales corresponde Vercel Pro. Pro también
+  permite cron más frecuente (Hobby: una vez por día) y logs de 1 día (Hobby: 1 hora).
+- **Supabase plan gratis**: 500 MB de base, 1 GB de archivos y 5 GB de
+  transferencia al mes (documentación oficial). Además, según lo que sé, el
+  proyecto gratis se pausa tras una semana sin actividad, no incluye backups y
+  limita cada archivo a 50 MB: **verificarlo en el panel antes de lanzar**. Para
+  cobrar conviene el plan Pro (sin pausa, con backups).
+- **La APK y la transferencia**: con una APK de 40 MB, 120 descargas agotan los
+  5 GB del mes. Para APK grandes o muchos clientes: APK solo `arm64-v8a`, o un
+  bucket de Cloudflare R2 (sin costo de transferencia) con el mismo link firmado.
+- **Mercado Pago** limita las llamadas a su API por cuenta; el sitio hace pocas
+  (1 por aviso, 1 por intento de compra, 1 por consulta de `/gracias` mientras
+  espera el aviso).
+
+Si las ventas crecen, lo primero que conviene mirar es el uso de IA por cliente
+en Keelwise (costo variable), no este backend.
+
+## Seguridad
+
+Qué se revisó y dónde se prueba (`tests/billing-security.test.js` y
+`tests/billing-sql.test.js`):
+
+- **Base**: RLS activado en las 5 tablas, sin políticas y sin permisos para
+  `anon`/`authenticated`; solo el service role (servidor) las toca. Las
+  funciones `billing_*` solo las ejecuta el service role; `get_my_entitlements()`
+  solo usuarios con sesión y devuelve únicamente lo del email verificado de ese
+  usuario. Todas las funciones `security definer` fijan `search_path`.
+- **Entradas**: cada parámetro (query, body, headers y método) de cada endpoint
+  se prueba con ~90 valores hostiles (inyección SQL, `../`, saltos de línea,
+  tipos raros, arreglos, objetos, textos gigantes, `__proto__`). Para entradas
+  inválidas: respuesta 400/401/403/404/405/429, **cero llamadas a MP, cero
+  escrituras**, sin secretos ni eco de lo enviado, `nosniff` y `no-store`.
+- **Precio**: el cliente no puede cambiar monto, moneda, prueba, estado ni URL
+  de vuelta; todo sale de `billing_products`.
+- **Webhook**: firma HMAC obligatoria (sin secreto configurado, ninguna pasa);
+  comparación en tiempo constante; ids validados antes de tocar MP; el estado
+  se lee siempre de la API de MP. Un reenvío (replay) de un aviso firmado no
+  cambia nada. Un pago por menos del monto o en otra moneda no habilita.
+- **Acceso**: `/admin` y el cron responden **404 uniforme** a cualquier
+  credencial inválida; el admin exige JWT válido de Supabase, email verificado
+  y estar en `ADMIN_EMAILS`. La descarga exige permiso activo y devuelve un link
+  firmado de 10 minutos de un bucket privado. `status` solo devuelve
+  `{ active, status }`.
+- **Logs**: los valores que vienen de afuera se sanean antes de loguearse (sin
+  saltos de línea). Los emails y las IP no se guardan en claro en los límites.
+- **Cabeceras**: `X-Content-Type-Options`, `X-Frame-Options: DENY`,
+  `Referrer-Policy` y `Permissions-Policy` en todo el sitio; `no-store` en la API.
+  No hay CSP todavía: el sitio usa estilos en línea y animaciones, y una CSP
+  mal puesta lo rompe. Queda como mejora aparte, probándola en un preview.
+- **Navegador**: el test revisa que ningún secreto del servidor aparezca en
+  `src/` y que las únicas variables `VITE_` de billing sean las dos públicas.
+
+Recomendado además (manual): activar MFA para el usuario admin en Supabase,
+usar una contraseña larga de gestor, y rotar `MP_ACCESS_TOKEN` y
+`SUPABASE_SERVICE_ROLE_KEY` si alguna vez se pegan en un chat o un log.
+
+Riesgos conocidos y aceptados:
+
+- Un aviso firmado se puede reenviar (MP no documenta una tolerancia de
+  tiempo), pero es inofensivo: se vuelve a leer el estado real en MP.
+- Quien conoce el `preapproval_id` de una compra (aparece en la URL de
+  `/gracias`) puede pedir el link de descarga mientras el permiso esté activo.
+  La APK sin cuenta de la app no sirve de nada; si se quiere cerrar, hay que
+  pedir login antes de descargar.
+- Un mismo email puede iniciar compras ajenas (el pago lo hace otra persona con
+  su cuenta de MP): no da acceso a nadie más que a ese email.
 
 ## Variables de entorno
 
@@ -188,6 +274,7 @@ Nombres en `.env.example` (sin valores). En Vercel → Settings → Environment 
 | `SITE_URL` | URLs de vuelta (`https://rigelstudio.com.ar`) | no |
 | `ADMIN_EMAILS` | quién ve `/admin` (separados por comas) | no |
 | `VITE_BILLING_SUPABASE_URL` / `VITE_BILLING_SUPABASE_ANON_KEY` | login de `/admin` (mismo proyecto) | no (públicas) |
+| `CRON_SECRET` | autentica el cron diario (`/api/billing/reconcile`). Mínimo 16 caracteres al azar; Vercel lo manda solo | **sí** |
 | `BILLING_STORAGE_BUCKET` | opcional, bucket de las APK (default `apks`) | no |
 | `KEELWISE_PRICE_ARS` | respaldo del precio | no |
 
@@ -219,4 +306,19 @@ Nombres en `.env.example` (sin valores). En Vercel → Settings → Environment 
    reenviar una notificación; con un id inexistente el endpoint responde 200
    sin cambios (`unknown-order`).
 
-Tests locales (sin red, MP y Supabase mockeados): `npm test`.
+## Preparar Supabase (una sola vez)
+
+1. Proyecto de Supabase **de las apps** (el mismo donde se registran los usuarios).
+2. SQL Editor → pegar `supabase/migrations/billing.sql` completo → Run. Después
+   `supabase/seed/products.sql` → Run. Se pueden volver a correr sin romper nada.
+3. Table Editor: tienen que verse `billing_products` (con Keelwise),
+   `billing_orders`, `billing_entitlements`, `billing_webhook_events` y
+   `billing_rate_limits`, cada una con el candado de RLS activo.
+4. Storage → *New bucket* → nombre `apks` → **sin** marcar "Public bucket".
+   Subir `keelwise.apk` (máximo 50 MB en el plan gratis).
+5. Project Settings → API: copiar la URL y las claves. `anon` es pública;
+   `service_role` va **solo** en `SUPABASE_SERVICE_ROLE_KEY` de Vercel.
+6. Authentication → Users → *Add user* con tu email (confirmado) para `/admin`.
+
+Tests locales (sin red, MP y Supabase mockeados; el SQL corre en un Postgres
+real en memoria con PGlite): `npm test`.
