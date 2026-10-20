@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import PageShell from '../../components/layout/PageShell';
 import { whatsappLink } from '../../data/products';
 import { usePageMeta } from '../../lib/seo';
+import { accessQuery } from '../../lib/billing';
 import { CREAM, GOLD, body, h1, h3, label, narrow, primaryButton } from '../../components/ui/pageStyles';
 
 const POLL_MS = 5000;
@@ -20,28 +21,30 @@ const INSTALL_STEPS = [
 export default function Gracias() {
   usePageMeta('/keelwise/gracias');
   const [params] = useSearchParams();
-  const preapprovalId = params.get('preapproval_id') || '';
-  const [status, setStatus] = useState(preapprovalId ? 'checking' : 'missing');
+  const q = accessQuery('keelwise', params);
+  const code = params.get('preapproval_id') || params.get('external_reference') || '';
+  const [status, setStatus] = useState(q ? 'checking' : 'missing');
   const [apkUrl, setApkUrl] = useState('');
+  const [inTrial, setInTrial] = useState(false);
 
   useEffect(() => {
-    if (!preapprovalId) return undefined;
+    if (!q) return undefined;
     let cancelled = false;
     let timer;
     const started = Date.now();
-    const q = `preapproval_id=${encodeURIComponent(preapprovalId)}`;
 
     async function check() {
       try {
-        const res = await fetch(`/api/keelwise/status?${q}`);
+        const res = await fetch(`/api/billing/status?${q}`);
         if (res.status === 400) { if (!cancelled) setStatus('error'); return; }
         const data = res.ok ? await res.json() : { active: false };
         if (cancelled) return;
         if (data.active) {
-          const dl = await fetch(`/api/keelwise/download?${q}`);
+          const dl = await fetch(`/api/billing/download?${q}`);
           const dlData = await dl.json().catch(() => ({}));
           if (cancelled) return;
           if (dl.ok && dlData.url) setApkUrl(dlData.url);
+          setInTrial(data.status === 'trial');
           setStatus('active');
           return;
         }
@@ -55,9 +58,9 @@ export default function Gracias() {
 
     check();
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [preapprovalId]);
+  }, [q]);
 
-  const help = whatsappLink(`Hola, me suscribí a Keelwise y necesito ayuda. Código: ${preapprovalId || 'sin código'}`);
+  const help = whatsappLink(`Hola, me suscribí a Keelwise y necesito ayuda. Código: ${code || 'sin código'}`);
 
   return (
     <PageShell ctaLabel="Volver a Keelwise" ctaHref="/keelwise">
@@ -83,7 +86,7 @@ export default function Gracias() {
           <>
             <h1 style={h1}>Listo, ya tenés Keelwise</h1>
             <p style={{ ...body, marginTop: 20 }}>
-              Tu suscripción está activa. Los primeros 7 días son de prueba sin cargo.
+              Tu suscripción está activa.{inTrial && ' Estás en el período de prueba: todavía no se te cobró nada.'}
             </p>
             {apkUrl ? (
               <p style={{ margin: '28px 0' }}>

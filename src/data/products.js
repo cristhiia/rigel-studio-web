@@ -7,8 +7,9 @@ const WHATSAPP = 'https://wa.me/5492645048401';
 
 export const whatsappLink = text => `${WHATSAPP}?text=${encodeURIComponent(text)}`;
 
-// Precio de Keelwise. Se cobra en pesos (KEELWISE_PRICE_ARS, expuesto al build
-// por vite.config.js); USD es la referencia que se muestra.
+// Precio de Keelwise que se muestra antes de que responda la API. La fuente de
+// verdad es billing_products.price_ars (la landing la pide a
+// /api/billing/checkout); KEELWISE_PRICE_ARS queda solo como respaldo del build.
 const priceArs = Number(import.meta.env.KEELWISE_PRICE_ARS);
 
 export const KEELWISE_PRICE = {

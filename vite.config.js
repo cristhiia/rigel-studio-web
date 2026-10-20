@@ -72,8 +72,9 @@ function routeMetaPages() {
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), preloadHeroFonts(), routeMetaPages()],
-  // KEELWISE_PRICE_ARS es público (se muestra en la landing); el resto de las
-  // variables de Keelwise son solo de servidor y no llevan este prefijo.
+  // KEELWISE_PRICE_ARS es público (respaldo del precio en la landing; la fuente
+  // de verdad es billing_products). VITE_BILLING_SUPABASE_* (URL y anon key del
+  // panel /admin) también son públicas. El resto es solo de servidor.
   envPrefix: ['VITE_', 'KEELWISE_PRICE_'],
   test: { include: ['tests/**/*.test.js'], environment: 'node' },
 })

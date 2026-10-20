@@ -3,16 +3,23 @@ import { Link } from 'react-router-dom';
 import PageShell from '../../components/layout/PageShell';
 import { KEELWISE_PRICE, formatArs } from '../../data/products';
 import { usePageMeta } from '../../lib/seo';
+import { startCheckout, useBillingProduct } from '../../lib/billing';
 import {
   BODY, CREAM, CREAM_85, DISPLAY, GOLD,
   body, container, h1, h2, h3, input, label, narrow, primaryButton, section,
 } from '../../components/ui/pageStyles';
 
-const { usd, ars, trialDays } = KEELWISE_PRICE;
-const PRICE_LINE = ars ? `USD ${usd} por mes · se cobra en pesos: ${formatArs(ars)}` : `USD ${usd} por mes`;
-const BILLING_NOTE = ars
-  ? `Los primeros ${trialDays} días son gratis. Después, Mercado Pago cobra ${formatArs(ars)} por mes. Cancelás cuando quieras.`
-  : `Los primeros ${trialDays} días son gratis. Después se cobra el equivalente a USD ${usd} por mes, en pesos, con Mercado Pago. Cancelás cuando quieras.`;
+const SLUG = 'keelwise';
+
+// Precio vigente: billing_products (vía API); KEELWISE_PRICE es el valor del build.
+const priceLine = ({ usd, ars }) => (ars ? `USD ${usd} por mes · se cobra en pesos: ${formatArs(ars)}` : `USD ${usd} por mes`);
+const billingNote = ({ usd, ars, trialDays }) => {
+  const trial = trialDays > 0 ? `Los primeros ${trialDays} días son gratis. Después, ` : '';
+  const charge = ars
+    ? `Mercado Pago cobra ${formatArs(ars)} por mes.`
+    : `se cobra el equivalente a USD ${usd} por mes, en pesos, con Mercado Pago.`;
+  return `${trial}${trial ? charge : charge.charAt(0).toUpperCase() + charge.slice(1)} Cancelás cuando quieras.`;
+};
 
 // Capturas en public/keelwise/. Al subir una imagen, poner ready: true;
 // mientras tanto se muestra el marco vacío (sin pedir el archivo).
@@ -33,13 +40,13 @@ const FEATURES = [
   { title: '¿Es posta?', text: '¿Viste una oferta? Compartí el link a Keelwise y la IA te dice si el descuento parece real o inflado.' },
 ];
 
-const STEPS = [
+const steps = trialDays => [
   { title: 'Suscribite con tu email', text: `Elegís cómo pagar en Mercado Pago. Los primeros ${trialDays} días no se cobran.` },
   { title: 'Instalá la app', text: 'Te damos el link para bajar Keelwise en tu Android, con instrucciones paso a paso.' },
   { title: 'Entrá con el mismo email', text: 'Usá el email de tu suscripción para registrarte en la app y listo.' },
 ];
 
-const FAQ = [
+const faq = trialDays => [
   {
     q: '¿Cómo instalo la APK?',
     a: [
@@ -77,7 +84,7 @@ const FAQ = [
   },
 ];
 
-function SubscribeForm({ id }) {
+function SubscribeForm({ id, price }) {
   const [email, setEmail] = useState('');
   const [state, setState] = useState({ loading: false, error: '' });
 
@@ -85,14 +92,7 @@ function SubscribeForm({ id }) {
     e.preventDefault();
     setState({ loading: true, error: '' });
     try {
-      const res = await fetch('/api/keelwise/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.init_point) throw new Error(data.error || 'No pudimos iniciar la suscripción.');
-      window.location.assign(data.init_point);
+      window.location.assign(await startCheckout(SLUG, email));
     } catch (err) {
       setState({ loading: false, error: err.message });
     }
@@ -116,10 +116,10 @@ function SubscribeForm({ id }) {
           style={{ ...input, flex: 1 }}
         />
         <button type="submit" className="kw-btn" disabled={state.loading} style={{ ...primaryButton, opacity: state.loading ? 0.85 : 1 }}>
-          {state.loading ? 'Abriendo Mercado Pago…' : `Probar ${trialDays} días gratis`}
+          {state.loading ? 'Abriendo Mercado Pago…' : `Probar ${price.trialDays} días gratis`}
         </button>
       </div>
-      <p style={{ ...body, fontSize: '0.95rem', marginTop: 12 }}>{BILLING_NOTE}</p>
+      <p style={{ ...body, marginTop: 12 }}>{billingNote(price)}</p>
       {state.error && (
         <p role="alert" style={{ ...body, color: CREAM, marginTop: 12, borderLeft: `2px solid ${GOLD}`, paddingLeft: 12 }}>
           {state.error}
@@ -166,6 +166,9 @@ function Screenshot({ file, caption, ready }) {
 
 export default function Keelwise() {
   usePageMeta('/keelwise');
+  const price = useBillingProduct(SLUG, KEELWISE_PRICE);
+  const { usd, ars, trialDays } = price;
+  const PRICE_LINE = priceLine(price);
 
   return (
     <PageShell ctaLabel="Contacto" ctaHref="/#contacto">
@@ -195,7 +198,7 @@ export default function Keelwise() {
         <p style={{ fontFamily: DISPLAY, fontWeight: 500, fontSize: '1.15rem', color: CREAM, margin: '0 0 28px' }}>
           {PRICE_LINE}
         </p>
-        <SubscribeForm id="hero" />
+        <SubscribeForm id="hero" price={price} />
       </section>
 
       {/* ── Capturas ── */}
@@ -225,7 +228,7 @@ export default function Keelwise() {
         <span style={label}>Cómo funciona</span>
         <h2 style={h2}>Tres pasos y empezás</h2>
         <ol className="kw-grid-3" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {STEPS.map((s, i) => (
+          {steps(trialDays).map((s, i) => (
             <li key={s.title} style={{ borderTop: `1px solid rgba(212,175,55,0.4)`, paddingTop: 20 }}>
               <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: '2rem', color: GOLD }}>{i + 1}</span>
               <h3 style={{ ...h3, marginTop: 8 }}>{s.title}</h3>
@@ -261,7 +264,7 @@ export default function Keelwise() {
       <section style={{ ...narrow, ...section }}>
         <span style={label}>Preguntas frecuentes</span>
         <h2 style={h2}>Lo que suelen preguntarnos</h2>
-        {FAQ.map(item => (
+        {faq(trialDays).map(item => (
           <details key={item.q} className="kw-faq" style={{ borderBottom: '1px solid rgba(240,231,213,0.15)', padding: '20px 0' }}>
             <summary style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
               <span style={{ fontFamily: DISPLAY, fontWeight: 500, fontSize: '1.1rem', color: CREAM }}>{item.q}</span>
@@ -281,7 +284,7 @@ export default function Keelwise() {
       <section id="suscribirme" style={{ ...container, padding: '72px 24px 96px' }}>
         <h2 style={{ ...h2, maxWidth: 640 }}>Probalo {trialDays} días. Si no te sirve, lo cancelás.</h2>
         <p style={{ ...body, fontFamily: DISPLAY, fontWeight: 500, color: CREAM, marginBottom: 24 }}>{PRICE_LINE}</p>
-        <SubscribeForm id="final" />
+        <SubscribeForm id="final" price={price} />
         <p style={{ ...body, marginTop: 32 }}>
           ¿Te suscribiste y te arrepentiste?{' '}
           <Link to="/arrepentimiento" style={{ color: GOLD, textDecoration: 'underline' }}>Botón de arrepentimiento</Link>
