@@ -1,0 +1,724 @@
+// Billing multiproducto de Rigel Studio (Mercado Pago + Supabase).
+//
+// Cada producto es una fila en billing_products. Este módulo crea el cobro
+// (suscripción o pago único), procesa las notificaciones de MP, guarda pedidos
+// y permisos y resuelve la entrega. Los handlers de /api/billing/* y los
+// envoltorios de /api/keelwise/* son una línea que llama a handle*().
+//
+// Todo lo que toca red llega por `ctx` ({ store, mp, env, now, log }) para
+// poder testearlo con mocks (ver tests/billing*.test.js).
+import { createMpClient, isValidMpId, verifySignature } from './mercadopago.js'
+import { createSupabaseStore } from './billingStore.js'
+import { bearerToken, clientIp, createRateLimiter, send, withDeadline } from './http.js'
+
+export { isValidMpId }
+
+export const GRACE_DAYS = 3
+export const DOWNLOAD_TTL_S = 600
+export const DEFAULT_BUCKET = 'apks'
+const WEBHOOK_MP_TIMEOUT_MS = 2000
+const WEBHOOK_DEADLINE_MS = 4500
+const ACTIVE_STATUSES = new Set(['trial', 'active'])
+
+export class BillingError extends Error {
+  constructor(status, message) {
+    super(message)
+    this.status = status
+  }
+}
+
+// ── Validaciones ─────────────────────────────────────────────────────────
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export function normalizeEmail(email) {
+  return typeof email === 'string' ? email.trim().toLowerCase() : ''
+}
+
+export function isValidEmail(email) {
+  const e = normalizeEmail(email)
+  return e.length > 0 && e.length <= 254 && EMAIL_RE.test(e)
+}
+
+export const isValidSlug = s => typeof s === 'string' && s.length <= 64 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(s)
+export const isUuid = s => typeof s === 'string' && UUID_RE.test(s)
+
+const trimSlash = url => String(url).replace(/\/+$/, '')
+const addDays = (date, days) => new Date(date.getTime() + days * 86_400_000)
+
+// ── Precio ───────────────────────────────────────────────────────────────
+export function parsePriceArs(raw) {
+  if (raw === null || raw === undefined || raw === '') return null
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null
+}
+
+// Respaldo documentado: <SLUG>_PRICE_ARS (ej. KEELWISE_PRICE_ARS) se usa solo
+// si billing_products.price_ars está vacío.
+export const fallbackPriceEnvName = slug => `${slug.toUpperCase().replace(/-/g, '_')}_PRICE_ARS`
+
+export function resolvePriceArs(product, env = {}) {
+  return parsePriceArs(product.price_ars) ?? parsePriceArs(env[fallbackPriceEnvName(product.slug)])
+}
+
+// Recalcula price_ars = price_usd × cotización, redondeado a `round` pesos.
+export function planPriceChange(product, { usdRate, round = 1 }) {
+  const rate = Number(usdRate)
+  const step = Number(round)
+  if (!Number.isFinite(rate) || rate <= 0) throw new Error('--usd-rate tiene que ser un número mayor a 0')
+  if (!Number.isFinite(step) || step <= 0) throw new Error('--round tiene que ser un número mayor a 0')
+  const usd = parsePriceArs(product.price_usd)
+  if (!usd) throw new Error(`El producto ${product.slug} no tiene price_usd`)
+  const next = Math.round((usd * rate) / step) * step
+  const current = parsePriceArs(product.price_ars)
+  return { slug: product.slug, price_usd: usd, usd_rate: rate, current, next, changed: current !== next }
+}
+
+// ── Payloads de Mercado Pago ─────────────────────────────────────────────
+// La página de vuelta es /<slug>/gracias (convención de las landings).
+export const thanksUrl = (siteUrl, slug) => `${trimSlash(siteUrl)}/${slug}/gracias`
+
+export const subscriptionReason = product => `${product.name} — suscripción mensual`
+
+export function buildPreapprovalPayload({ product, order, priceArs, siteUrl, trialDays = 0 }) {
+  const autoRecurring = {
+    frequency: 1,
+    frequency_type: 'months',
+    transaction_amount: priceArs,
+    currency_id: 'ARS',
+  }
+  if (trialDays > 0) autoRecurring.free_trial = { frequency: trialDays, frequency_type: 'days' }
+  return {
+    reason: subscriptionReason(product),
+    payer_email: order.email,
+    external_reference: order.id,
+    back_url: thanksUrl(siteUrl, product.slug),
+    status: 'pending',
+    auto_recurring: autoRecurring,
+  }
+}
+
+export function buildPreferencePayload({ product, order, priceArs, siteUrl }) {
+  const back = thanksUrl(siteUrl, product.slug)
+  return {
+    items: [{ id: product.slug, title: product.name, quantity: 1, unit_price: priceArs, currency_id: 'ARS' }],
+    payer: { email: order.email },
+    external_reference: order.id,
+    back_urls: { success: back, pending: back, failure: back },
+    auto_return: 'approved',
+    statement_descriptor: 'RIGEL STUDIO',
+  }
+}
+
+// ── Estados ──────────────────────────────────────────────────────────────
+// Devuelven { order, entitlement } (entitlement null = no tocar el permiso)
+// o null si MP manda un estado que no conocemos.
+export function mapSubscriptionStatus(mpStatus, { inTrial = false, paymentRejected = false } = {}) {
+  switch (mpStatus) {
+    case 'authorized':
+      return { order: 'authorized', entitlement: paymentRejected ? 'past_due' : inTrial ? 'trial' : 'active' }
+    case 'pending':
+      return { order: 'pending', entitlement: null }
+    case 'paused': // pausada a mano o por cobros fallidos: sin acceso hasta que vuelva a authorized
+      return { order: 'paused', entitlement: 'past_due' }
+    case 'cancelled':
+      return { order: 'cancelled', entitlement: 'cancelled' }
+    default:
+      return null
+  }
+}
+
+export function mapPaymentStatus(mpStatus) {
+  switch (mpStatus) {
+    case 'approved':
+      return { order: 'approved', entitlement: 'active' }
+    case 'pending':
+    case 'in_process':
+    case 'authorized':
+      return { order: 'pending', entitlement: null }
+    case 'rejected':
+      return { order: 'rejected', entitlement: null }
+    case 'cancelled':
+      return { order: 'cancelled', entitlement: null }
+    case 'refunded':
+    case 'charged_back':
+      return { order: 'refunded', entitlement: 'cancelled' }
+    default:
+      return null
+  }
+}
+
+export function isEntitlementActive(ent, now = new Date()) {
+  if (!ent || !ACTIVE_STATUSES.has(ent.status)) return false
+  return !ent.valid_until || new Date(ent.valid_until) > now
+}
+
+// Un evento viejo de otro pedido (ej. la suscripción anterior que se cancela
+// después de que el cliente se volvió a suscribir) no le saca el acceso que le
+// da el pedido actual.
+export function decideEntitlement(existing, next) {
+  if (
+    existing &&
+    existing.source_order_id &&
+    existing.source_order_id !== next.source_order_id &&
+    ACTIVE_STATUSES.has(existing.status) &&
+    !ACTIVE_STATUSES.has(next.status)
+  ) {
+    return null
+  }
+  return next
+}
+
+async function applyEntitlement(order, { status, valid_until }, ctx) {
+  const { store, log = console } = ctx
+  const now = ctx.now || new Date()
+  const existing = await store.getEntitlement(order.email, order.product_slug)
+  const row = decideEntitlement(existing, {
+    email: order.email,
+    product_slug: order.product_slug,
+    status,
+    valid_until,
+    source_order_id: order.id,
+    updated_at: now.toISOString(),
+  })
+  if (!row) {
+    log.info('[billing] se conserva el permiso de otro pedido', { order_id: order.id, ignored_status: status })
+    return existing
+  }
+  await store.upsertEntitlement(row)
+  return row
+}
+
+// ── Sincronizar con el estado real de MP ─────────────────────────────────
+async function findOrderForPreapproval(pre, store) {
+  const ref = pre.external_reference
+  const order = isUuid(ref) ? await store.getOrder(ref) : null
+  if (order) return order
+  return isValidMpId(String(pre.id)) ? store.findOrderByPreapproval(String(pre.id)) : null
+}
+
+export async function syncPreapproval(pre, ctx, { authorizedPayment } = {}) {
+  const { store, log = console } = ctx
+  const now = ctx.now || new Date()
+  if (!pre || !pre.id) return { handled: false, reason: 'no-preapproval' }
+
+  const order = await findOrderForPreapproval(pre, store)
+  if (!order) return { handled: false, reason: 'unknown-order' }
+  if (order.billing_type !== 'subscription') return { handled: false, reason: 'type-mismatch' }
+  if (order.mp_preapproval_id && order.mp_preapproval_id !== String(pre.id)) {
+    return { handled: false, reason: 'preapproval-mismatch' }
+  }
+
+  const trial = pre.auto_recurring && pre.auto_recurring.free_trial
+  const created = new Date(pre.date_created || order.created_at)
+  const trialEnd = trial ? addDays(created, Number(trial.frequency) || 0) : created
+  const paymentStatus = authorizedPayment && authorizedPayment.payment && authorizedPayment.payment.status
+  const paymentApproved = paymentStatus === 'approved'
+  const inTrial = Boolean(trial) && now < trialEnd && !paymentApproved && !order.paid_at
+
+  const mapped = mapSubscriptionStatus(pre.status, { inTrial, paymentRejected: paymentStatus === 'rejected' })
+  if (!mapped) {
+    log.warn('[billing] estado de suscripción desconocido, se ignora', { order_id: order.id, status: pre.status })
+    return { handled: false, reason: 'unknown-status' }
+  }
+
+  const patch = { status: mapped.order, mp_preapproval_id: String(pre.id) }
+  if (paymentApproved) {
+    patch.mp_payment_id = String(authorizedPayment.payment.id || authorizedPayment.id)
+    if (!order.paid_at) patch.paid_at = now.toISOString()
+  }
+  await store.updateOrder(order.id, patch)
+
+  let entitlement = null
+  if (mapped.entitlement) {
+    const base = pre.next_payment_date ? new Date(pre.next_payment_date) : inTrial ? trialEnd : addDays(now, 30)
+    entitlement = await applyEntitlement(
+      order,
+      { status: mapped.entitlement, valid_until: addDays(base, GRACE_DAYS).toISOString() },
+      ctx,
+    )
+  }
+  return { handled: true, order: { ...order, ...patch }, entitlement }
+}
+
+export async function syncPayment(payment, ctx) {
+  const { store, log = console } = ctx
+  const now = ctx.now || new Date()
+  if (!payment || !payment.id) return { handled: false, reason: 'no-payment' }
+
+  const order = isUuid(payment.external_reference) ? await store.getOrder(payment.external_reference) : null
+  if (!order) return { handled: false, reason: 'unknown-order' }
+  // Los cobros mensuales de una suscripción también llegan como "payment":
+  // esos se procesan por subscription_authorized_payment.
+  if (order.billing_type !== 'one_time') return { handled: false, reason: 'subscription-payment' }
+  // Otro intento de pago del mismo pedido no pisa uno ya aprobado.
+  if (order.status === 'approved' && order.mp_payment_id && order.mp_payment_id !== String(payment.id)) {
+    return { handled: false, reason: 'already-approved' }
+  }
+
+  const mapped = mapPaymentStatus(payment.status)
+  if (!mapped) {
+    log.warn('[billing] estado de pago desconocido, se ignora', { order_id: order.id, status: payment.status })
+    return { handled: false, reason: 'unknown-status' }
+  }
+  if (
+    mapped.order === 'approved' &&
+    (payment.currency_id !== 'ARS' || Number(payment.transaction_amount) < Number(order.amount_ars))
+  ) {
+    log.warn('[billing] pago aprobado con monto o moneda distintos al pedido, no se habilita', { order_id: order.id })
+    return { handled: false, reason: 'amount-mismatch' }
+  }
+
+  const patch = { status: mapped.order, mp_payment_id: String(payment.id) }
+  if (mapped.order === 'approved' && !order.paid_at) patch.paid_at = payment.date_approved || now.toISOString()
+  await store.updateOrder(order.id, patch)
+
+  let entitlement = null
+  if (mapped.entitlement) entitlement = await applyEntitlement(order, { status: mapped.entitlement, valid_until: null }, ctx)
+  return { handled: true, order: { ...order, ...patch }, entitlement }
+}
+
+// Notificación ya verificada. Siempre consulta el estado real en MP, así un
+// evento repetido o desordenado deja el mismo resultado.
+export async function processNotification({ type, dataId }, ctx) {
+  const { mp } = ctx
+  if (!isValidMpId(dataId)) return { handled: false, reason: 'invalid-id' }
+  switch (type) {
+    case 'subscription_preapproval':
+      return syncPreapproval(await mp.getPreapproval(dataId), ctx)
+    case 'subscription_authorized_payment': {
+      const ap = await mp.getAuthorizedPayment(dataId)
+      const preId = String((ap && ap.preapproval_id) || '')
+      if (!isValidMpId(preId)) return { handled: false, reason: 'no-preapproval' }
+      return syncPreapproval(await mp.getPreapproval(preId), ctx, { authorizedPayment: ap })
+    }
+    case 'payment':
+      return syncPayment(await mp.getPayment(dataId), ctx)
+    default:
+      return { handled: false, reason: 'ignored-type' }
+  }
+}
+
+// ── Checkout ─────────────────────────────────────────────────────────────
+export function publicProduct(product, env) {
+  return {
+    slug: product.slug,
+    name: product.name,
+    billing_type: product.billing_type,
+    price_usd: parsePriceArs(product.price_usd),
+    price_ars: resolvePriceArs(product, env),
+    trial_days: product.trial_days || 0,
+  }
+}
+
+export async function checkout({ product: slug, email }, ctx) {
+  const { store, mp, env, log = console } = ctx
+  if (!isValidSlug(slug)) throw new BillingError(400, 'Producto inválido')
+  if (!isValidEmail(email)) throw new BillingError(400, 'Email inválido')
+
+  const product = await store.getProduct(slug)
+  if (!product || !product.active) throw new BillingError(404, 'Ese producto no está disponible')
+  const priceArs = resolvePriceArs(product, env)
+  if (!priceArs || !env.SITE_URL || !['subscription', 'one_time'].includes(product.billing_type)) {
+    log.error('[billing/checkout] configuración incompleta (precio, SITE_URL o billing_type)', { product: slug })
+    throw new BillingError(503, 'El pago todavía no está disponible')
+  }
+
+  const payer = normalizeEmail(email)
+  const isSubscription = product.billing_type === 'subscription'
+  // La prueba gratis es para la primera vez: quien ya tuvo acceso no la repite.
+  let trialDays = 0
+  if (isSubscription && product.trial_days > 0) {
+    trialDays = (await store.getEntitlement(payer, slug)) ? 0 : product.trial_days
+  }
+
+  const order = await store.createOrder({
+    product_slug: slug,
+    email: payer,
+    billing_type: product.billing_type,
+    status: 'created',
+    amount_ars: priceArs,
+  })
+
+  try {
+    const args = { product, order, priceArs, siteUrl: env.SITE_URL, trialDays }
+    if (isSubscription) {
+      const pre = await mp.createPreapproval(buildPreapprovalPayload(args))
+      if (!pre || !pre.init_point || !pre.id) throw new Error('MP no devolvió init_point')
+      await store.updateOrder(order.id, { mp_preapproval_id: String(pre.id), status: 'pending' })
+      return { url: pre.init_point, order_id: order.id }
+    }
+    const pref = await mp.createPreference(buildPreferencePayload(args))
+    if (!pref || !pref.init_point) throw new Error('MP no devolvió init_point')
+    await store.updateOrder(order.id, { status: 'pending' })
+    return { url: pref.init_point, order_id: order.id }
+  } catch (error) {
+    log.error('[billing/checkout] error creando el cobro en MP', { order_id: order.id, message: error.message, mp: error.mpMessage || '' })
+    await store.updateOrder(order.id, { status: 'failed' }).catch(() => {})
+    throw new BillingError(502, 'No pudimos iniciar el pago. Probá de nuevo en unos minutos.')
+  }
+}
+
+// ── Estado y entrega ─────────────────────────────────────────────────────
+const getSafe = async fn => {
+  try {
+    return await fn()
+  } catch (err) {
+    if (err.status === 404) return null
+    throw err
+  }
+}
+
+// Busca el pedido por su id (external_reference) o por el preapproval_id que
+// MP agrega a la página de vuelta. Si el permiso todavía no está activo,
+// consulta MP y sincroniza (por si el webhook todavía no llegó).
+export async function getAccess({ product: slug, orderId, preapprovalId, paymentId }, ctx) {
+  const { store, mp } = ctx
+  const now = ctx.now || new Date()
+
+  let order = null
+  let pre = null
+  if (isUuid(orderId)) {
+    order = await store.getOrder(orderId)
+  } else if (isValidMpId(preapprovalId)) {
+    order = await store.findOrderByPreapproval(preapprovalId)
+    if (!order) {
+      pre = await getSafe(() => mp.getPreapproval(preapprovalId))
+      if (pre && isUuid(pre.external_reference)) order = await store.getOrder(pre.external_reference)
+    }
+  }
+  if (!order || (slug && order.product_slug !== slug)) return { found: false, active: false, order: null, entitlement: null }
+
+  let entitlement = await store.getEntitlement(order.email, order.product_slug)
+  if (!isEntitlementActive(entitlement, now)) {
+    if (order.billing_type === 'subscription') {
+      const id = order.mp_preapproval_id || (pre && String(pre.id))
+      if (!pre && isValidMpId(id)) pre = await getSafe(() => mp.getPreapproval(id))
+      if (pre) await syncPreapproval(pre, ctx)
+    } else if (isValidMpId(paymentId)) {
+      const payment = await getSafe(() => mp.getPayment(paymentId))
+      if (payment && payment.external_reference === order.id) await syncPayment(payment, ctx)
+    }
+    entitlement = await store.getEntitlement(order.email, order.product_slug)
+  }
+  return { found: true, order, entitlement, active: isEntitlementActive(entitlement, now) }
+}
+
+export async function resolveDelivery(product, ctx) {
+  const { store, env = {} } = ctx
+  const ref = product.delivery_ref || ''
+  switch (product.delivery_type) {
+    case 'apk': {
+      if (!ref) throw new BillingError(503, 'Descarga no disponible todavía')
+      const url = await store.signDownload(env.BILLING_STORAGE_BUCKET || DEFAULT_BUCKET, ref, DOWNLOAD_TTL_S)
+      return { type: 'apk', url, expires_in: DOWNLOAD_TTL_S }
+    }
+    case 'web_access':
+      if (!/^https:\/\//.test(ref)) throw new BillingError(503, 'Acceso no disponible todavía')
+      return { type: 'web_access', url: ref }
+    case 'license_key':
+    case 'manual':
+      // Entrega a mano por ahora (ver docs/billing.md).
+      return { type: product.delivery_type, note: ref || null }
+    default:
+      throw new BillingError(503, 'Entrega no configurada')
+  }
+}
+
+// ── Panel /admin ─────────────────────────────────────────────────────────
+export function parseAdminEmails(raw) {
+  return new Set(
+    String(raw || '')
+      .split(',')
+      .map(normalizeEmail)
+      .filter(Boolean),
+  )
+}
+
+export function isAdminUser(user, adminEmails) {
+  return Boolean(user && user.email && user.email_confirmed_at && adminEmails.has(normalizeEmail(user.email)))
+}
+
+// Argentina es UTC-3 todo el año (sin horario de verano).
+export function monthStartArgentina(now) {
+  const local = new Date(now.getTime() - 3 * 3_600_000)
+  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1, 3, 0, 0))
+}
+
+const round2 = n => Math.round(n * 100) / 100
+
+export function buildSummary({ products, entitlements, orders, now = new Date() }) {
+  const monthStart = monthStartArgentina(now)
+  const inMonth = d => Boolean(d) && new Date(d) >= monthStart
+  const ordersById = new Map(orders.map(o => [o.id, o]))
+
+  const rows = products.map(p => {
+    const ents = entitlements.filter(e => e.product_slug === p.slug)
+    const count = statuses => ents.filter(e => statuses.includes(e.status)).length
+    const mrr =
+      p.billing_type === 'subscription'
+        ? ents
+            .filter(e => e.status === 'active')
+            .reduce((sum, e) => sum + Number((ordersById.get(e.source_order_id) || {}).amount_ars || 0), 0)
+        : 0
+    const oneTimeMonth = orders
+      .filter(o => o.product_slug === p.slug && o.billing_type === 'one_time' && o.status === 'approved' && inMonth(o.paid_at))
+      .reduce((sum, o) => sum + Number(o.amount_ars || 0), 0)
+    return {
+      slug: p.slug,
+      name: p.name,
+      billing_type: p.billing_type,
+      on_sale: Boolean(p.active),
+      active: count(['active']),
+      trial: count(['trial']),
+      past_due: count(['past_due']),
+      cancelled: count(['cancelled', 'expired']),
+      mrr_ars: round2(mrr),
+      one_time_month_ars: round2(oneTimeMonth),
+      new_this_month: ents.filter(e => inMonth(e.created_at)).length,
+      churned_this_month: ents.filter(e => ['cancelled', 'expired'].includes(e.status) && inMonth(e.updated_at)).length,
+    }
+  })
+
+  const sum = key => round2(rows.reduce((s, r) => s + r[key], 0))
+  const totals = {
+    active: sum('active'),
+    trial: sum('trial'),
+    past_due: sum('past_due'),
+    cancelled: sum('cancelled'),
+    mrr_ars: sum('mrr_ars'),
+    one_time_month_ars: sum('one_time_month_ars'),
+    new_this_month: sum('new_this_month'),
+    churned_this_month: sum('churned_this_month'),
+  }
+
+  const recent_orders = [...orders]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 20)
+    .map(o => ({
+      id: o.id,
+      product_slug: o.product_slug,
+      email: o.email,
+      billing_type: o.billing_type,
+      status: o.status,
+      amount_ars: Number(o.amount_ars),
+      created_at: o.created_at,
+      paid_at: o.paid_at || null,
+    }))
+
+  return { generated_at: now.toISOString(), month_start: monthStart.toISOString(), totals, products: rows, recent_orders }
+}
+
+// ── HTTP ─────────────────────────────────────────────────────────────────
+// Dependencias reemplazables en tests.
+export const deps = {
+  createStore: env => createSupabaseStore({ url: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY }),
+  createMp: (env, opts = {}) => createMpClient({ accessToken: env.MP_ACCESS_TOKEN, ...opts }),
+  now: () => new Date(),
+  log: console,
+}
+
+const hasDb = env => Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY)
+
+async function buildCtx(env, mpOpts) {
+  return {
+    env,
+    store: await deps.createStore(env),
+    mp: deps.createMp(env, mpOpts),
+    now: deps.now(),
+    log: deps.log,
+  }
+}
+
+const limiters = {
+  checkout: createRateLimiter({ limit: 10, windowMs: 60_000 }),
+  status: createRateLimiter({ limit: 30, windowMs: 60_000 }),
+  download: createRateLimiter({ limit: 10, windowMs: 60_000 }),
+  admin: createRateLimiter({ limit: 30, windowMs: 60_000 }),
+}
+
+const tooMany = res => send(res, 429, { error: 'Demasiadas consultas, esperá un minuto' })
+
+function fromError(res, error, scope) {
+  if (error instanceof BillingError) return send(res, error.status, { error: error.message })
+  deps.log.error(`[billing/${scope}] error:`, error.message)
+  return send(res, 502, { error: 'No pudimos completar la operación. Probá de nuevo en unos minutos.' })
+}
+
+// GET  ?product=slug → datos públicos del producto (nombre, precio, prueba).
+// POST {product, email} → { url } de pago. `responseKey` mantiene el
+// contrato viejo de /api/keelwise/subscribe ({ init_point }).
+export async function handleCheckout(req, res, { product: fixedProduct, responseKey = 'url' } = {}) {
+  const env = process.env
+  if (req.method === 'GET') {
+    const slug = fixedProduct || String((req.query && req.query.product) || '')
+    if (!isValidSlug(slug)) return send(res, 400, { error: 'Producto inválido' })
+    if (!hasDb(env)) return send(res, 503, { error: 'No disponible' })
+    try {
+      const store = await deps.createStore(env)
+      const product = await store.getProduct(slug)
+      if (!product || !product.active) return send(res, 404, { error: 'Ese producto no está disponible' })
+      return send(res, 200, publicProduct(product, env), 'public, max-age=60, s-maxage=300')
+    } catch (error) {
+      return fromError(res, error, 'checkout')
+    }
+  }
+  if (req.method !== 'POST') return send(res, 405, { error: 'Método no permitido' })
+  if (!limiters.checkout(clientIp(req))) return tooMany(res)
+
+  const body = req.body || {}
+  const slug = fixedProduct || body.product
+  if (!isValidSlug(slug)) return send(res, 400, { error: 'Producto inválido' })
+  if (!isValidEmail(body.email)) return send(res, 400, { error: 'Email inválido' })
+  if (!hasDb(env) || !env.MP_ACCESS_TOKEN) {
+    deps.log.error('[billing/checkout] faltan variables de entorno (Supabase o MP)')
+    return send(res, 503, { error: 'El pago todavía no está disponible' })
+  }
+
+  try {
+    const { url } = await checkout({ product: slug, email: body.email }, await buildCtx(env))
+    return send(res, 200, { [responseKey]: url })
+  } catch (error) {
+    return fromError(res, error, 'checkout')
+  }
+}
+
+// Un único endpoint para todos los productos. Verifica la firma, deduplica
+// por id de notificación y responde antes de 5 s. Ante una falla transitoria
+// devuelve 500 para que MP reintente (el procesamiento es idempotente).
+export async function handleWebhook(req, res) {
+  if (req.method !== 'POST') return send(res, 405, { error: 'Método no permitido' })
+  const env = process.env
+  const log = deps.log
+  const query = req.query || {}
+  const body = req.body || {}
+  const headers = req.headers || {}
+  const dataId = String(query['data.id'] || (body.data && body.data.id) || '')
+  const type = String(query.type || body.type || query.topic || '')
+
+  const valid = verifySignature({
+    signatureHeader: headers['x-signature'],
+    requestId: headers['x-request-id'],
+    dataId,
+    secret: env.MP_WEBHOOK_SECRET,
+  })
+  if (!valid) {
+    log.warn('[billing/webhook] firma inválida', { type, dataId })
+    return send(res, 401, { error: 'Firma inválida' })
+  }
+  if (!hasDb(env) || !env.MP_ACCESS_TOKEN) {
+    log.error('[billing/webhook] configuración incompleta')
+    return send(res, 500, { error: 'Configuración incompleta' })
+  }
+
+  const rawEventId = String(body.id || headers['x-request-id'] || '')
+  const eventId = /^[A-Za-z0-9_-]{1,128}$/.test(rawEventId) ? rawEventId : ''
+
+  try {
+    const result = await withDeadline(
+      (async () => {
+        const ctx = await buildCtx(env, { timeoutMs: WEBHOOK_MP_TIMEOUT_MS })
+        if (eventId) {
+          const { processed } = await ctx.store.claimEvent({ id: eventId, type, data_id: dataId })
+          if (processed) return { handled: false, reason: 'duplicate' }
+        }
+        const r = await processNotification({ type, dataId }, ctx)
+        if (eventId) await ctx.store.markEventProcessed(eventId)
+        return r
+      })(),
+      WEBHOOK_DEADLINE_MS,
+    )
+    if (!result.handled) log.info('[billing/webhook] sin cambios:', result.reason, { type, dataId })
+    return send(res, 200, { ok: true })
+  } catch (error) {
+    log.error('[billing/webhook] error procesando', { type, dataId, message: error.message })
+    return send(res, 500, { error: 'Error procesando la notificación' })
+  }
+}
+
+function accessParams(req, fixedProduct) {
+  const q = req.query || {}
+  return {
+    product: fixedProduct || String(q.product || ''),
+    orderId: String(q.order || q.external_reference || ''),
+    preapprovalId: String(q.preapproval_id || ''),
+    paymentId: String(q.payment_id || q.collection_id || ''),
+  }
+}
+
+function validateAccessParams(p) {
+  if (!isValidSlug(p.product)) return 'Producto inválido'
+  if (!isUuid(p.orderId) && !isValidMpId(p.preapprovalId)) return 'Código de pedido inválido'
+  return null
+}
+
+// GET ?product=slug&order=<uuid> | &preapproval_id=<id> [&payment_id=<id>]
+export async function handleStatus(req, res, { product: fixedProduct } = {}) {
+  if (req.method !== 'GET') return send(res, 405, { error: 'Método no permitido' })
+  if (!limiters.status(clientIp(req))) return tooMany(res)
+  const params = accessParams(req, fixedProduct)
+  const invalid = validateAccessParams(params)
+  if (invalid) return send(res, 400, { error: invalid })
+  const env = process.env
+  if (!hasDb(env) || !env.MP_ACCESS_TOKEN) return send(res, 503, { error: 'No disponible' })
+
+  try {
+    const access = await getAccess(params, await buildCtx(env))
+    return send(res, 200, { active: access.active, status: (access.entitlement && access.entitlement.status) || null })
+  } catch (error) {
+    return fromError(res, error, 'status')
+  }
+}
+
+// Igual que status, pero si el permiso está activo devuelve la entrega del
+// producto (para 'apk', link firmado de 10 minutos).
+export async function handleDownload(req, res, { product: fixedProduct } = {}) {
+  if (req.method !== 'GET') return send(res, 405, { error: 'Método no permitido' })
+  if (!limiters.download(clientIp(req))) return tooMany(res)
+  const params = accessParams(req, fixedProduct)
+  const invalid = validateAccessParams(params)
+  if (invalid) return send(res, 400, { error: invalid })
+  const env = process.env
+  if (!hasDb(env) || !env.MP_ACCESS_TOKEN) return send(res, 503, { error: 'Descarga no disponible todavía' })
+
+  try {
+    const ctx = await buildCtx(env)
+    const access = await getAccess(params, ctx)
+    if (!access.active) return send(res, 403, { error: 'El acceso no está activo' })
+    const product = await ctx.store.getProduct(access.order.product_slug)
+    if (!product) return send(res, 503, { error: 'Descarga no disponible todavía' })
+    return send(res, 200, await resolveDelivery(product, ctx))
+  } catch (error) {
+    return fromError(res, error, 'download')
+  }
+}
+
+// Sin sesión válida, sin email verificado o fuera de ADMIN_EMAILS: 404 sin
+// detalle (no confirma que el panel exista).
+export async function handleAdminSummary(req, res) {
+  const notFound = () => send(res, 404, { error: 'No encontrado' })
+  if (req.method !== 'GET') return notFound()
+  if (!limiters.admin(clientIp(req))) return tooMany(res)
+  const env = process.env
+  const token = bearerToken(req)
+  const admins = parseAdminEmails(env.ADMIN_EMAILS)
+  if (!token || admins.size === 0 || !hasDb(env)) {
+    if (token && (admins.size === 0 || !hasDb(env))) deps.log.error('[admin] falta ADMIN_EMAILS o Supabase')
+    return notFound()
+  }
+
+  try {
+    const store = await deps.createStore(env)
+    const user = await store.verifyUser(token)
+    if (!isAdminUser(user, admins)) return notFound()
+    const [products, entitlements, orders] = await Promise.all([
+      store.listProducts(),
+      store.listEntitlements(),
+      store.listOrders({ limit: 5000 }),
+    ])
+    return send(res, 200, buildSummary({ products, entitlements, orders, now: deps.now() }))
+  } catch (error) {
+    deps.log.error('[admin] error armando el resumen:', error.message)
+    return send(res, 502, { error: 'No pudimos cargar el resumen' })
+  }
+}
