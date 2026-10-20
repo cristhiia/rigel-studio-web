@@ -15,6 +15,17 @@ export const ROUTE_META = {
     description: 'Confirmación de tu suscripción a Keelwise.',
     noindex: true,
   },
+  // Panel interno: noindex, fuera del sitemap y con título neutro.
+  '/admin': {
+    title: 'Rigel Studio',
+    description: 'Rigel Studio, estudio de software en San Juan, Argentina.',
+    noindex: true,
+  },
+  '/admin/ingresar': {
+    title: 'Rigel Studio',
+    description: 'Rigel Studio, estudio de software en San Juan, Argentina.',
+    noindex: true,
+  },
   '/terminos': {
     title: 'Términos y condiciones | Rigel Studio',
     description: 'Términos y condiciones de uso del sitio y de los productos de Rigel Studio.',
