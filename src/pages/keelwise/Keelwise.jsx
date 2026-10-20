@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageShell from '../../components/layout/PageShell';
 import { KEELWISE_PRICE, formatArs } from '../../data/products';
@@ -84,9 +84,30 @@ const faq = trialDays => [
   },
 ];
 
+// Baja hasta el formulario sin cambiar la URL: un link "#suscribirme" suma una
+// entrada al historial por cada toque y el botón Volver parece trabado.
+function goToForm(e) {
+  e.preventDefault();
+  const target = document.getElementById('suscribirme');
+  if (!target) return;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  const input = target.querySelector('input');
+  if (input) setTimeout(() => input.focus({ preventScroll: true }), reduce ? 0 : 500);
+}
+
 function SubscribeForm({ id, price }) {
   const [email, setEmail] = useState('');
   const [state, setState] = useState({ loading: false, error: '' });
+
+  // Al volver desde Mercado Pago con el botón Volver, el navegador puede
+  // devolver esta página tal como quedó ("Abriendo Mercado Pago…" y botón
+  // bloqueado). Se destraba para poder intentar de nuevo.
+  useEffect(() => {
+    const onShow = (e) => { if (e.persisted) setState({ loading: false, error: '' }); };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, []);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -256,7 +277,7 @@ export default function Keelwise() {
               </li>
             ))}
           </ul>
-          <a href="#suscribirme" className="kw-btn" style={primaryButton}>Probar {trialDays} días gratis</a>
+          <a href="#suscribirme" onClick={goToForm} className="kw-btn" style={primaryButton}>Probar {trialDays} días gratis</a>
         </div>
       </section>
 
