@@ -5,10 +5,14 @@ import { fetchAdminSummary, getAdminClient } from '../../lib/adminAuth';
 import { formatArs } from '../../data/products';
 import { BODY, CREAM, CREAM_85, DISPLAY, GOLD, h1, h2 } from '../../components/ui/pageStyles';
 import AdminShell, { LINE, NAVY } from './AdminShell';
+import Subscribers from './Subscribers';
+import Settings from './Settings';
+import { Btn } from './adminUi';
 
-// /admin — panel de solo lectura. Sin sesión o sin permiso (el servidor
+// /admin — panel de gestión (Resumen | Suscriptores | Ajustes). Sin sesión o sin permiso (el servidor
 // responde 404) vuelve a la home sin explicar por qué.
 
+const TABS = [['resumen', 'Resumen'], ['suscriptores', 'Suscriptores'], ['ajustes', 'Ajustes']];
 const TYPE_LABEL = { subscription: 'Suscripción', one_time: 'Pago único' };
 const ORDER_STATUS = {
   created: 'Iniciado',
@@ -126,6 +130,7 @@ export default function Admin() {
   const [data, setData] = useState(null);
   const [email, setEmail] = useState('');
   const [client, setClient] = useState(null);
+  const [tab, setTab] = useState('resumen');
 
   useEffect(() => {
     let cancelled = false;
@@ -196,27 +201,51 @@ export default function Admin() {
       `}</style>
 
       <section style={{ maxWidth: 1120, margin: '0 auto', padding: '40px 16px 96px' }}>
-        <h1 style={{ ...h1, fontSize: 'clamp(2rem, 5vw, 2.8rem)' }}>Ventas</h1>
+        <div role="tablist" aria-label="Secciones" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
+          {TABS.map(([id, label]) => (
+            <Btn key={id} kind={tab === id ? 'primary' : 'ghost'} onClick={() => setTab(id)} style={{ flex: '1 1 0', minWidth: 0, padding: '10px 4px', fontSize: '0.95rem' }}>{label}</Btn>
+          ))}
+        </div>
+
+        {tab === 'resumen' && (
+          <>
+        <h1 style={{ ...h1, fontSize: 'clamp(2rem, 5vw, 2.8rem)' }}>Resumen</h1>
         <p style={{ color: CREAM_85, margin: '12px 0 32px' }}>
           Altas y bajas de {monthName(data.month_start)} · actualizado {formatDate(data.generated_at)}
         </p>
 
         <div className="adm-kpis">
-          <Kpi wide accent label="Ingreso mensual recurrente" value={formatArs(t.mrr_ars)} />
-          <Kpi label="Clientes activos" value={t.active} />
-          <Kpi label="En prueba" value={t.trial} />
-          <Kpi label="Morosos" value={t.past_due} />
-          <Kpi label="Cancelados" value={t.cancelled} />
-          <Kpi label="Altas del mes" value={t.new_this_month} />
-          <Kpi label="Bajas del mes" value={t.churned_this_month} />
-          {hasOneTime && <Kpi wide label="Pagos únicos del mes" value={formatArs(t.one_time_month_ars)} />}
-        </div>
+              <Kpi wide accent label="Ingreso mensual recurrente" value={formatArs(t.mrr_ars)} />
+              <Kpi label="Clientes activos" value={t.active} />
+              <Kpi label="En prueba" value={t.trial} />
+              <Kpi label="Morosos" value={t.past_due} />
+              <Kpi label="Cancelados" value={t.cancelled} />
+              <Kpi label="Altas del mes" value={t.new_this_month} />
+              <Kpi label="Bajas del mes" value={t.churned_this_month} />
+              {hasOneTime && <Kpi wide label="Pagos únicos del mes" value={formatArs(t.one_time_month_ars)} />}
+            </div>
 
-        <h2 style={{ ...h2, fontSize: 'clamp(1.4rem, 3.5vw, 1.8rem)', margin: '56px 0 16px' }}>Por producto</h2>
-        <ProductsTable products={data.products} />
+            <h2 style={{ ...h2, fontSize: 'clamp(1.4rem, 3.5vw, 1.8rem)', margin: '56px 0 16px' }}>Por producto</h2>
+            <ProductsTable products={data.products} />
 
-        <h2 style={{ ...h2, fontSize: 'clamp(1.4rem, 3.5vw, 1.8rem)', margin: '56px 0 16px' }}>Últimos pedidos</h2>
-        <OrdersTable orders={data.recent_orders} names={names} />
+            <h2 style={{ ...h2, fontSize: 'clamp(1.4rem, 3.5vw, 1.8rem)', margin: '56px 0 16px' }}>Últimos pedidos</h2>
+            <OrdersTable orders={data.recent_orders} names={names} />
+          </>
+        )}
+
+        {tab === 'suscriptores' && (
+          <>
+            <h1 style={{ ...h1, fontSize: 'clamp(2rem, 5vw, 2.8rem)', marginBottom: 20 }}>Suscriptores</h1>
+            <Subscribers client={client} products={data.products} />
+          </>
+        )}
+
+        {tab === 'ajustes' && (
+          <>
+            <h1 style={{ ...h1, fontSize: 'clamp(2rem, 5vw, 2.8rem)', marginBottom: 20 }}>Ajustes</h1>
+            <Settings client={client} />
+          </>
+        )}
       </section>
     </AdminShell>
   );

@@ -10,9 +10,9 @@ Vender una app nueva = **una fila en `billing_products` + una landing**.
 | Esquema (5 tablas + funciones) | `supabase/migrations/billing.sql` (idempotente) |
 | Productos | `supabase/seed/products.sql` |
 | Lógica | `api/_lib/billing.js` (+ `mercadopago.js`, `billingStore.js`, `http.js`) |
-| Endpoints | `api/billing/{checkout,webhook,status,download,reconcile}.js`, `api/admin/summary.js` (7 funciones de Vercel contando `api/contact.js`; el plan Hobby permite 12) |
+| Endpoints | `api/billing/{checkout,webhook,status,download,reconcile}.js`, `api/admin/{summary,subscribers,manage}.js` (9 funciones de Vercel contando `api/contact.js`; el plan Hobby permite 12) |
 | Precio | `scripts/set-price.js` (`npm run billing:price`) |
-| Panel | `/admin` (solo lectura), login en `/admin/ingresar` |
+| Panel | `/admin` (Resumen · Suscriptores · Ajustes), login en `/admin/ingresar` |
 | Permisos en las apps | `docs/billing-entitlement.md` |
 | Pruebas | `tests/billing*.test.js` (`npm test`): SQL en Postgres real, escala, seguridad |
 
@@ -163,6 +163,35 @@ La landing muestra primero el valor del build y lo reemplaza por el de la base.
 - `noindex` (meta y header `X-Robots-Tag`), fuera del sitemap, en un chunk aparte.
 - Para crear el usuario admin: Supabase → Authentication → Users → *Add user*
   (con el email de `ADMIN_EMAILS`, confirmado).
+
+### Gestión desde el panel (celular incluido)
+
+Tres pestañas:
+
+- **Resumen**: los números de abajo.
+- **Suscriptores**: lista paginada con filtros (activos, en prueba, por vencer
+  en 7 días, morosos, sin acceso) y búsqueda por email. Tocar una persona
+  muestra: *Extender acceso* (7/30/90/365 días desde hoy) y *Quitar acceso*
+  (con confirmación). **+ Dar acceso** crea un acceso manual para un email
+  (testers, regalos, soporte) por N días o sin vencimiento, con una nota.
+- **Ajustes**: *Precio según el dólar* (escribís la cotización, ves el cambio
+  "$15.500 → $16.000" y recién ahí lo aplicás; vale para quienes se suscriban
+  desde ese momento) e *Historial* de todo lo que se hizo desde el panel.
+
+Reglas:
+
+- Un acceso **manual** vigente no se pisa con avisos de Mercado Pago que digan
+  "cancelado" (ej. un tester que tenía una suscripción vieja). Si esa persona
+  después paga con MP, el aviso que da acceso pasa a mandar (`source = 'mp'`).
+- *Quitar acceso* a alguien que paga con MP ofrece **cancelar también la
+  suscripción en Mercado Pago** (`PUT /preapproval/{id}` con `cancelled`). Si
+  MP falla, no se cambia nada. Esa llamada no se probó contra MP real: probarla
+  en sandbox (punto de la lista de pruebas) antes de usarla con un cliente.
+- Cada acción queda en `billing_admin_log` (quién, qué, cuándo). Todos los
+  endpoints exigen sesión de admin (404 uniforme si no), validan cada campo y
+  tienen límite de intentos (por IP y por administrador, compartido en la base).
+- El acceso en la app sigue dependiendo de que el email con el que inicia
+  sesión sea el mismo (verificado) que el del permiso.
 
 Definiciones del resumen (mes calendario de Argentina):
 

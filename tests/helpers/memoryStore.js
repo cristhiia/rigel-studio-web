@@ -36,6 +36,7 @@ export function memoryStore({ products = [KEELWISE, PLANTILLA], users = {}, cloc
     events: new Map(),
     rates: new Map(),
     signed: [],
+    adminLog: [],
   }
   const key = (email, slug) => `${email}|${slug}`
   const clone = v => (v ? { ...v } : null)
@@ -128,6 +129,40 @@ export function memoryStore({ products = [KEELWISE, PLANTILLA], users = {}, cloc
         .map(o => ({ id: o.id, product_slug: o.product_slug, email: o.email, billing_type: o.billing_type, status: o.status, amount_ars: o.amount_ars, created_at: o.created_at, paid_at: o.paid_at }))
       return { products, recent_orders }
     },
+
+    async adminSubscribers({ product, q, status, limit, offset }) {
+      const now = clock()
+      const effective = e => {
+        const alive = !e.valid_until || new Date(e.valid_until) > now
+        if (e.status === 'active' && alive) return 'active'
+        if (e.status === 'trial' && e.valid_until && alive) return 'trial'
+        if (e.status === 'past_due' && e.valid_until && alive) return 'past_due'
+        return 'cancelled'
+      }
+      const expiring = (e, st) =>
+        ['active', 'trial', 'past_due'].includes(st) && e.valid_until && new Date(e.valid_until) < new Date(now.getTime() + 7 * 86_400_000)
+      const all = [...db.entitlements.values()]
+        .map(e => ({ e, st: effective(e) }))
+        .filter(({ e }) => !product || e.product_slug === product)
+        .filter(({ e }) => !q || e.email.includes(q))
+        .filter(({ e, st }) => !status || st === status || (status === 'expiring' && expiring(e, st)))
+        .sort((a, b) =>
+          status === 'expiring'
+            ? new Date(a.e.valid_until) - new Date(b.e.valid_until)
+            : String(b.e.updated_at).localeCompare(String(a.e.updated_at)) || a.e.email.localeCompare(b.e.email))
+      const rows = all.slice(offset, offset + Math.min(Math.max(limit, 1), 100)).map(({ e, st }) => {
+        const o = db.orders.get(e.source_order_id)
+        return {
+          email: e.email, product_slug: e.product_slug, status: st, raw_status: e.status,
+          valid_until: e.valid_until || null, source: e.source || 'mp', note: e.note || null,
+          created_at: e.created_at, updated_at: e.updated_at,
+          order_status: o ? o.status : null, amount_ars: o ? o.amount_ars : null, has_mp: Boolean(o && o.mp_preapproval_id),
+        }
+      })
+      return { total: all.length, rows }
+    },
+    async logAdminAction(row) { db.adminLog.push({ at: clock().toISOString(), ...row }) },
+    async listAdminLog(limit) { return db.adminLog.slice(-limit).reverse().map(clone) },
 
     async dueOrders(limit) {
       const now = clock().getTime()

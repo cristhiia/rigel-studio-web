@@ -158,7 +158,17 @@ export function isEntitlementActive(ent, now = new Date()) {
 // Un evento viejo de otro pedido (ej. la suscripción anterior que se cancela
 // después de que el cliente se volvió a suscribir) no le saca el acceso que le
 // da el pedido actual.
-export function decideEntitlement(existing, next) {
+export function decideEntitlement(existing, next, now = new Date()) {
+  // Un permiso dado a mano que sigue vigente no lo pisa un aviso de MP que no
+  // da acceso (ej. un tester que además tenía una suscripción vieja cancelada).
+  if (
+    existing &&
+    existing.source === 'manual' &&
+    isEntitlementActive(existing, now) &&
+    !ACTIVE_STATUSES.has(next.status)
+  ) {
+    return null
+  }
   if (
     existing &&
     existing.source_order_id &&
@@ -181,8 +191,10 @@ async function applyEntitlement(order, { status, valid_until }, ctx) {
     status,
     valid_until,
     source_order_id: order.id,
+    source: 'mp',
+    note: null,
     updated_at: now.toISOString(),
-  })
+  }, now)
   if (!row) {
     log.info('[billing] se conserva el permiso de otro pedido', { order_id: order.id, ignored_status: status })
     return existing

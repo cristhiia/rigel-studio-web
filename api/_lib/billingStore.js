@@ -98,6 +98,21 @@ export async function createSupabaseStore({ url, serviceRoleKey }) {
       if (error) fail('dueOrders', error)
       return data || []
     },
+    // Listado para /admin: { total, rows } (ver billing_admin_subscribers).
+    async adminSubscribers({ product, q, status, limit, offset }) {
+      const { data, error } = await client.rpc('billing_admin_subscribers', {
+        p_product: product || null, p_q: q || null, p_status: status || null, p_limit: limit, p_offset: offset,
+      })
+      if (error) fail('adminSubscribers', error)
+      return data || { total: 0, rows: [] }
+    },
+    async logAdminAction(row) {
+      const { error } = await client.from('billing_admin_log').insert(row)
+      if (error) fail('logAdminAction', error)
+    },
+    listAdminLog: limit =>
+      many(client.from('billing_admin_log').select('at,admin_email,action,product_slug,target_email,detail').order('at', { ascending: false }).limit(limit), 'listAdminLog'),
+
     // Limpieza diaria. Devuelve cuánto limpió.
     async maintenance() {
       const { data, error } = await client.rpc('billing_maintenance')

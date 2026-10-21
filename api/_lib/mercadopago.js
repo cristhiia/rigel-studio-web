@@ -71,5 +71,9 @@ export function createMpClient({ accessToken, fetchImpl = fetch, timeoutMs = DEF
     getAuthorizedPayment: id => call(`/authorized_payments/${encodeURIComponent(id)}`),
     createPreference: payload => post('/checkout/preferences', payload),
     getPayment: id => call(`/v1/payments/${encodeURIComponent(id)}`),
+    // Cancela una suscripción (el cliente deja de ser cobrado). Según la
+    // documentación de MP: PUT /preapproval/{id} con status "cancelled".
+    cancelPreapproval: id =>
+      call(`/preapproval/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) }),
   }
 }

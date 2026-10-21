@@ -94,7 +94,7 @@ describe('migración', () => {
 })
 
 describe('permisos: anon y authenticated no tocan nada directo', () => {
-  const TABLES = ['billing_products', 'billing_orders', 'billing_entitlements', 'billing_webhook_events', 'billing_rate_limits']
+  const TABLES = ['billing_products', 'billing_orders', 'billing_entitlements', 'billing_webhook_events', 'billing_rate_limits', 'billing_admin_log']
 
   for (const role of ['anon', 'authenticated']) {
     for (const t of TABLES) {
@@ -121,7 +121,7 @@ describe('permisos: anon y authenticated no tocan nada directo', () => {
     await as('anon', null, () => denied(db.query('select * from public.get_my_entitlements()')))
   })
 
-  it('RLS está activado en las cinco tablas', async () => {
+  it('RLS está activado en las seis tablas', async () => {
     const rows = await q(`select relname from pg_class where relrowsecurity and relname like 'billing\\_%' order by 1`)
     expect(rows.map(r => r.relname)).toEqual([...TABLES].sort())
   })
@@ -133,7 +133,7 @@ describe('permisos: anon y authenticated no tocan nada directo', () => {
   it('las funciones billing_* son security definer con search_path fijo', async () => {
     const rows = await q(`select proname, prosecdef, proconfig from pg_proc
       where pronamespace = 'public'::regnamespace and proname like 'billing\\_%' or proname = 'get_my_entitlements'`)
-    expect(rows.length).toBe(5)
+    expect(rows.length).toBe(6)
     for (const r of rows) {
       expect(r.prosecdef, r.proname).toBe(true)
       expect(String(r.proconfig), r.proname).toMatch(/search_path=public, pg_temp/)
@@ -337,5 +337,57 @@ describe('billing_maintenance', () => {
       { email: 'b@x.com', status: 'active' },
       { email: 'c@x.com', status: 'active' },
     ])
+  })
+})
+
+describe('billing_admin_subscribers', () => {
+  const subs = (args = {}) => as('service_role', null, async () => {
+    const a = { product: null, q: null, status: null, limit: 25, offset: 0, ...args }
+    return (await q('select public.billing_admin_subscribers($1,$2,$3,$4,$5) as r', [a.product, a.q, a.status, a.limit, a.offset]))[0].r
+  })
+
+  beforeEach(async () => {
+    await order(oid(1), 'ana@x.com', { status: 'authorized', pre: 'pre1' })
+    await ent('ana@x.com', 'keelwise', 'active', `now() + interval '20 days'`, oid(1))
+    await ent('bea@x.com', 'keelwise', 'trial', `now() + interval '3 days'`)
+    await ent('caro@x.com', 'keelwise', 'active', `now() - interval '1 day'`)
+    await ent('dani@x.com', 'keelwise', 'active', 'null', null, { cols: `source, note`, vals: `'manual', 'tester'` })
+  })
+
+  it('usa el estado efectivo (un activo vencido cuenta como cancelado) y marca el origen', async () => {
+    const r = await subs()
+    expect(r.total).toBe(4)
+    const by = Object.fromEntries(r.rows.map(x => [x.email, x]))
+    expect(by['caro@x.com'].status).toBe('cancelled')
+    expect(by['ana@x.com']).toMatchObject({ status: 'active', has_mp: true, amount_ars: 14500, source: 'mp' })
+    expect(by['dani@x.com']).toMatchObject({ source: 'manual', note: 'tester', valid_until: null })
+  })
+
+  it('filtra por estado, por vencimiento próximo y por texto (sin comodines)', async () => {
+    expect((await subs({ status: 'trial' })).rows.map(x => x.email)).toEqual(['bea@x.com'])
+    expect((await subs({ status: 'expiring' })).rows.map(x => x.email)).toEqual(['bea@x.com'])
+    expect((await subs({ q: 'AN' })).rows.map(x => x.email).sort()).toEqual(['ana@x.com', 'dani@x.com'])
+    expect((await subs({ q: '%' })).total).toBe(0)
+    expect((await subs({ q: '_' })).total).toBe(0)
+    expect((await subs({ product: 'otro' })).total).toBe(0)
+  })
+
+  it('pagina y limita a 100', async () => {
+    const r = await subs({ limit: 2, offset: 1 })
+    expect(r.total).toBe(4)
+    expect(r.rows).toHaveLength(2)
+    expect((await subs({ limit: 5000 })).rows).toHaveLength(4)
+  })
+
+  it('anon y authenticated no pueden ejecutarla ni leer el historial', async () => {
+    for (const role of ['anon', 'authenticated']) {
+      await as(role, U_ANA, () => denied(db.query(`select public.billing_admin_subscribers(null,null,null,25,0)`)))
+      await as(role, U_ANA, () => denied(db.query('select * from public.billing_admin_log')))
+    }
+  })
+
+  it('el historial acepta solo acciones conocidas', async () => {
+    await as('service_role', null, () => db.query(`insert into public.billing_admin_log (admin_email, action, product_slug) values ('a@x.com','grant','keelwise')`))
+    await expect(db.query(`insert into public.billing_admin_log (admin_email, action) values ('a@x.com','borrar')`)).rejects.toThrow()
   })
 })

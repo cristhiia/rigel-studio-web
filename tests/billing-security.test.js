@@ -479,7 +479,7 @@ describe('revisión estática', () => {
   it('el SQL: toda tabla de billing tiene RLS y no hay políticas ni grants a anon/authenticated sobre tablas', () => {
     const sql = read(path.join(ROOT, 'supabase/migrations/billing.sql'))
     const tables = [...sql.matchAll(/create table if not exists public\.(billing_\w+)/g)].map(m => m[1])
-    expect(tables.length).toBe(5)
+    expect(tables.length).toBe(6)
     for (const tb of tables) expect(sql, tb).toMatch(new RegExp(`alter table public\\.${tb}\\s+enable row level security`))
     expect(sql).not.toMatch(/create policy/i)
     expect(sql).not.toMatch(/grant\s+(all|select|insert|update|delete)\s+on\s+(table\s+)?public\.billing/i)

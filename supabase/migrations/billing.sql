@@ -1,7 +1,8 @@
 -- Rigel Studio — billing multiproducto (Mercado Pago)
--- NO se ejecutó contra ninguna base. Correr manualmente, una sola vez, en el
--- proyecto de Supabase que usan las apps para Auth (ver docs/billing.md).
--- Es idempotente: se puede volver a correr sin romper nada.
+-- Correr en el proyecto de Supabase que usan las apps para Auth (ver
+-- docs/billing.md). Es idempotente: se puede volver a correr sin romper nada.
+-- (El proyecto Keelwise ya lo tiene aplicado, incluida la sección de gestión
+-- del final.)
 -- Después correr supabase/seed/products.sql.
 --
 -- Escribe solo el sitio (api/billing/*) con la service role key, que saltea
@@ -319,3 +320,108 @@ grant execute on function public.billing_rate_hit(text, integer, integer) to ser
 grant execute on function public.billing_admin_summary(timestamptz)       to service_role;
 grant execute on function public.billing_due_orders(integer)              to service_role;
 grant execute on function public.billing_maintenance()                    to service_role;
+
+
+-- ══════════════════════════════════════════════════════════════════════════
+-- Gestión desde /admin (accesos manuales, listado de suscriptores, historial)
+-- ══════════════════════════════════════════════════════════════════════════
+
+-- De dónde viene el permiso: 'mp' (Mercado Pago) o 'manual' (lo dio/quitó una
+-- persona desde /admin: testers, regalos, soporte). Un permiso manual activo
+-- no se pisa con avisos de MP que dicen "cancelado".
+alter table public.billing_entitlements
+  add column if not exists source text not null default 'mp';
+alter table public.billing_entitlements
+  add column if not exists note text;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'billing_entitlements_source_chk') then
+    alter table public.billing_entitlements
+      add constraint billing_entitlements_source_chk check (source in ('mp', 'manual'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'billing_entitlements_note_chk') then
+    alter table public.billing_entitlements
+      add constraint billing_entitlements_note_chk check (note is null or char_length(note) <= 200);
+  end if;
+end $$;
+
+-- Historial de lo que se hizo desde el panel (quién, qué, cuándo).
+create table if not exists public.billing_admin_log (
+  id            bigint      generated always as identity primary key,
+  at            timestamptz not null default now(),
+  admin_email   text        not null check (char_length(admin_email) <= 254),
+  action        text        not null check (action in ('grant', 'revoke', 'price')),
+  product_slug  text,
+  target_email  text,
+  detail        jsonb       not null default '{}'::jsonb
+);
+create index if not exists billing_admin_log_at_idx on public.billing_admin_log (at desc);
+alter table public.billing_admin_log enable row level security;
+revoke all on public.billing_admin_log from anon, authenticated;
+
+-- Listado paginado para /admin. `p_q` busca dentro del email (sin comodines:
+-- position(), no ilike). `p_status`: active | trial | past_due | cancelled |
+-- expiring (vence en menos de 7 días).
+create or replace function public.billing_admin_subscribers(
+  p_product text default null,
+  p_q       text default null,
+  p_status  text default null,
+  p_limit   integer default 25,
+  p_offset  integer default 0
+)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  with eff as (
+    select e.email, e.product_slug, e.status as raw_status, e.valid_until,
+           e.source, e.note, e.created_at, e.updated_at,
+           o.status as order_status, o.amount_ars,
+           (o.mp_preapproval_id is not null) as has_mp,
+           case
+             when e.status = 'active' and (e.valid_until is null or e.valid_until > now()) then 'active'
+             when e.status = 'trial'  and e.valid_until > now() then 'trial'
+             when e.status = 'past_due' and e.valid_until > now() then 'past_due'
+             else 'cancelled'
+           end as eff_status
+    from public.billing_entitlements e
+    left join public.billing_orders o on o.id = e.source_order_id
+  ),
+  filtered as (
+    select * from eff
+    where (p_product is null or p_product = '' or product_slug = p_product)
+      and (p_q is null or p_q = '' or position(lower(p_q) in email) > 0)
+      and (
+        p_status is null or p_status = ''
+        or eff_status = p_status
+        or (p_status = 'expiring'
+            and eff_status in ('active', 'trial', 'past_due')
+            and valid_until is not null
+            and valid_until < now() + interval '7 days')
+      )
+  ),
+  page as (
+    select f.*, row_number() over (
+             order by case when p_status = 'expiring' then f.valid_until end asc nulls last,
+                      f.updated_at desc, f.email) as n
+    from filtered f
+  )
+  select jsonb_build_object(
+    'total', (select count(*) from filtered),
+    'rows', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'email', email, 'product_slug', product_slug, 'status', eff_status,
+        'raw_status', raw_status, 'valid_until', valid_until, 'source', source,
+        'note', note, 'created_at', created_at, 'updated_at', updated_at,
+        'order_status', order_status, 'amount_ars', amount_ars, 'has_mp', has_mp
+      ) order by n)
+      from page
+      where n > greatest(p_offset, 0) and n <= greatest(p_offset, 0) + least(greatest(p_limit, 1), 100)
+    ), '[]'::jsonb)
+  );
+$$;
+
+revoke all on function public.billing_admin_subscribers(text, text, text, integer, integer) from public, anon, authenticated;
+grant execute on function public.billing_admin_subscribers(text, text, text, integer, integer) to service_role;
