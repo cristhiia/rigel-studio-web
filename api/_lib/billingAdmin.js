@@ -26,17 +26,17 @@ export const ROUND_STEPS = new Set([1, 10, 50, 100])
 const RATE_MIN = 1
 const RATE_MAX = 1_000_000
 
-const limiters = {
+export const limiters = {
   read: createRateLimiter({ limit: 60, windowMs: 60_000 }),
   write: createRateLimiter({ limit: 20, windowMs: 60_000 }),
 }
 
 const hasDb = env => Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY)
-const notFound = res => send(res, 404, { error: 'No encontrado' })
-const bad = (res, error) => send(res, 400, { error })
+export const notFound = res => send(res, 404, { error: 'No encontrado' })
+export const bad = (res, error) => send(res, 400, { error })
 
 // Devuelve { store, user, env, now } o null (la respuesta ya se envió).
-async function guard(req, res, { method, limiter }) {
+export async function guard(req, res, { method, limiter }) {
   if (req.method !== method) { notFound(res); return null }
   if (!limiter(clientIp(req))) { send(res, 429, { error: 'Demasiadas consultas, esperá un minuto' }); return null }
   const env = process.env
@@ -54,7 +54,7 @@ async function guard(req, res, { method, limiter }) {
 }
 
 // ── Validaciones ─────────────────────────────────────────────────────────
-const isPlainObject = v => v !== null && typeof v === 'object' && !Array.isArray(v)
+export const isPlainObject = v => v !== null && typeof v === 'object' && !Array.isArray(v)
 
 // Quita caracteres de control y espacios sobrantes; el resultado se guarda y
 // se muestra en el panel (React lo escapa igual).

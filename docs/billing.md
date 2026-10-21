@@ -10,7 +10,7 @@ Vender una app nueva = **una fila en `billing_products` + una landing**.
 | Esquema (5 tablas + funciones) | `supabase/migrations/billing.sql` (idempotente) |
 | Productos | `supabase/seed/products.sql` |
 | Lógica | `api/_lib/billing.js` (+ `mercadopago.js`, `billingStore.js`, `http.js`) |
-| Endpoints | `api/billing/{checkout,webhook,status,download,reconcile}.js`, `api/admin/{summary,subscribers,manage}.js` (9 funciones de Vercel contando `api/contact.js`; el plan Hobby permite 12) |
+| Endpoints | `api/billing/{checkout,webhook,status,download,reconcile}.js`, `api/admin/{summary,subscribers,manage,crm}.js` (10 funciones de Vercel contando `api/contact.js`; el plan Hobby permite 12) |
 | Precio | `scripts/set-price.js` (`npm run billing:price`) |
 | Panel | `/admin` (Resumen · Suscriptores · Ajustes), login en `/admin/ingresar` |
 | Permisos en las apps | `docs/billing-entitlement.md` |
@@ -351,3 +351,19 @@ Nombres en `.env.example` (sin valores). En Vercel → Settings → Environment 
 
 Tests locales (sin red, MP y Supabase mockeados; el SQL corre en un Postgres
 real en memoria con PGlite): `npm test`.
+
+## CRM de Rigel Studio (`/admin`)
+
+Pestañas **Productos** y **Publicidad** del panel. Tablas `crm_products`, `crm_log` y `crm_creatives`
+(`supabase/migrations/crm.sql`, mismo proyecto de Supabase; RLS activado, solo el servidor las toca) y un
+solo endpoint, `api/admin/crm.js` (GET lee todo; POST `{ action }` con `product_save`, `log_add`,
+`log_delete`, `creative_save`, `creative_delete`). Mismo control de acceso que el resto (ADMIN_EMAILS, 404 uniforme).
+
+- **Ficha de producto**: estado, fase, modelo de cobro, cómo funciona, funciones, próximos pasos, competencia,
+  brief para publicidad y enlaces (solo http/https). Los usuarios y el ingreso salen de `billing_products` si la
+  ficha tiene `billing_slug`; si no, valen `manual_users` / `manual_mrr_ars`.
+- **Bitácora** (`crm_log`): avances, decisiones y notas por producto. También se pueden insertar filas directo
+  por SQL desde Claude / Claude Code.
+- **Publicidad** (`crm_creatives`): piezas (post, video, historia) con idea, texto, hashtags, enlace al archivo,
+  estado y, una vez publicadas por afuera, resultados cargados a mano y veredicto. No hay ninguna integración
+  con Meta ni publicación automática.

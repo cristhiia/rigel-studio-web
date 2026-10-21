@@ -37,6 +37,9 @@ export function memoryStore({ products = [KEELWISE, PLANTILLA], users = {}, cloc
     rates: new Map(),
     signed: [],
     adminLog: [],
+    crmProducts: new Map(),
+    crmLog: [],
+    crmCreatives: [],
   }
   const key = (email, slug) => `${email}|${slug}`
   const clone = v => (v ? { ...v } : null)
@@ -163,6 +166,28 @@ export function memoryStore({ products = [KEELWISE, PLANTILLA], users = {}, cloc
     },
     async logAdminAction(row) { db.adminLog.push({ at: clock().toISOString(), ...row }) },
     async listAdminLog(limit) { return db.adminLog.slice(-limit).reverse().map(clone) },
+
+    // ── CRM ──
+    async crmList() {
+      return {
+        products: [...db.crmProducts.values()].map(clone),
+        log: [...db.crmLog].reverse().map(clone),
+        creatives: [...db.crmCreatives].reverse().map(clone),
+      }
+    },
+    async crmGetProduct(slug) { return clone(db.crmProducts.get(slug)) },
+    async crmUpsertProduct(row) { db.crmProducts.set(row.slug, { ...(db.crmProducts.get(row.slug) || {}), ...row }) },
+    async crmInsertLog(row) { db.crmLog.push({ id: db.crmLog.length + 1, at: clock().toISOString(), ...row }) },
+    async crmDeleteLog(id) { db.crmLog = db.crmLog.filter(l => l.id !== id) },
+    async crmInsertCreative(row) {
+      const id = db.crmCreatives.reduce((m, c) => Math.max(m, c.id), 0) + 1
+      db.crmCreatives.push({ id, created_at: clock().toISOString(), ...row })
+    },
+    async crmUpdateCreative(id, row) {
+      const c = db.crmCreatives.find(x => x.id === id)
+      if (c) Object.assign(c, row)
+    },
+    async crmDeleteCreative(id) { db.crmCreatives = db.crmCreatives.filter(c => c.id !== id) },
 
     async dueOrders(limit) {
       const now = clock().getTime()

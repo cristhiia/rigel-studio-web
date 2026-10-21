@@ -1,18 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePageMeta } from '../../lib/seo';
-import { fetchAdminSummary, getAdminClient } from '../../lib/adminAuth';
+import { adminRequest, fetchAdminSummary, getAdminClient } from '../../lib/adminAuth';
 import { formatArs } from '../../data/products';
 import { BODY, CREAM, CREAM_85, DISPLAY, GOLD, h1, h2 } from '../../components/ui/pageStyles';
 import AdminShell, { LINE, NAVY } from './AdminShell';
 import Subscribers from './Subscribers';
 import Settings from './Settings';
-import { Btn } from './adminUi';
+import Crm from './Crm';
+import Ads from './Ads';
+import { Btn, Notice } from './adminUi';
 
-// /admin — panel de gestión (Resumen | Suscriptores | Ajustes). Sin sesión o sin permiso (el servidor
+// /admin — panel de gestión (Productos | Publicidad | Cobros | Suscriptores | Ajustes). Sin sesión o sin permiso (el servidor
 // responde 404) vuelve a la home sin explicar por qué.
 
-const TABS = [['resumen', 'Resumen'], ['suscriptores', 'Suscriptores'], ['ajustes', 'Ajustes']];
+const TABS = [['productos', 'Productos'], ['publicidad', 'Publicidad'], ['resumen', 'Cobros'], ['suscriptores', 'Suscriptores'], ['ajustes', 'Ajustes']];
 const TYPE_LABEL = { subscription: 'Suscripción', one_time: 'Pago único' };
 const ORDER_STATUS = {
   created: 'Iniciado',
@@ -130,7 +132,10 @@ export default function Admin() {
   const [data, setData] = useState(null);
   const [email, setEmail] = useState('');
   const [client, setClient] = useState(null);
-  const [tab, setTab] = useState('resumen');
+  const [tab, setTab] = useState('productos');
+  const [crm, setCrm] = useState(null);
+  const [crmError, setCrmError] = useState('');
+  const [adsProduct, setAdsProduct] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -154,6 +159,22 @@ export default function Admin() {
     })();
     return () => { cancelled = true; };
   }, [navigate]);
+
+  const reloadCrm = useCallback(async () => {
+    if (!client) return;
+    try {
+      setCrm(await adminRequest(client, 'crm'));
+      setCrmError('');
+    } catch (err) {
+      setCrmError(err.message);
+    }
+  }, [client]);
+  useEffect(() => { reloadCrm(); }, [reloadCrm]);
+
+  function openAds(slug) {
+    setAdsProduct(slug);
+    setTab('publicidad');
+  }
 
   async function logout() {
     if (client) await client.auth.signOut().catch(() => {});
@@ -207,9 +228,21 @@ export default function Admin() {
           ))}
         </div>
 
+        {(tab === 'productos' || tab === 'publicidad') && !crm && (
+          crmError
+            ? <Notice kind="error">{crmError}. Si recién se publicó esta versión, falta aplicar la migración del CRM.</Notice>
+            : <p style={{ color: CREAM_85 }}>Cargando…</p>
+        )}
+        {tab === 'productos' && crm && (
+          <Crm client={client} crm={crm} billing={data.products} onReload={reloadCrm} onOpenAds={openAds} />
+        )}
+        {tab === 'publicidad' && crm && (
+          <Ads key={adsProduct} client={client} crm={crm} onReload={reloadCrm} initialProduct={adsProduct} />
+        )}
+
         {tab === 'resumen' && (
           <>
-        <h1 style={{ ...h1, fontSize: 'clamp(2rem, 5vw, 2.8rem)' }}>Resumen</h1>
+        <h1 style={{ ...h1, fontSize: 'clamp(2rem, 5vw, 2.8rem)' }}>Cobros</h1>
         <p style={{ color: CREAM_85, margin: '12px 0 32px' }}>
           Altas y bajas de {monthName(data.month_start)} · actualizado {formatDate(data.generated_at)}
         </p>

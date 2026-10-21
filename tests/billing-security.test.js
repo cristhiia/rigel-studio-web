@@ -516,9 +516,9 @@ describe('revisión estática', () => {
     expect(cfg.crons).toEqual([{ path: '/api/billing/reconcile', schedule: expect.stringMatching(/^\S+ \S+ \S+ \S+ \S+$/) }])
   })
 
-  it('el plan Hobby permite 12 funciones: quedan al menos 3 libres', () => {
+  it('el plan Hobby permite 12 funciones: quedan al menos 2 libres (con el CRM son 10)', () => {
     const fns = walk(path.join(ROOT, 'api')).filter(f => f.endsWith('.js') && !path.relative(path.join(ROOT, 'api'), f).split(path.sep).some(p => p.startsWith('_')))
-    expect(fns.length, fns.map(f => path.relative(ROOT, f)).join(', ')).toBeLessThanOrEqual(9)
+    expect(fns.length, fns.map(f => path.relative(ROOT, f)).join(', ')).toBeLessThanOrEqual(10)
   })
 })
 

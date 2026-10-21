@@ -113,6 +113,41 @@ export async function createSupabaseStore({ url, serviceRoleKey }) {
     listAdminLog: limit =>
       many(client.from('billing_admin_log').select('at,admin_email,action,product_slug,target_email,detail').order('at', { ascending: false }).limit(limit), 'listAdminLog'),
 
+    // ── CRM (fichas, bitácora, publicidad) ──
+    async crmList() {
+      const [products, log, creatives] = await Promise.all([
+        many(client.from('crm_products').select('*').order('sort_order').order('name'), 'crmProducts'),
+        many(client.from('crm_log').select('*').order('at', { ascending: false }).limit(300), 'crmLog'),
+        many(client.from('crm_creatives').select('*').order('created_at', { ascending: false }).limit(500), 'crmCreatives'),
+      ])
+      return { products, log, creatives }
+    },
+    crmGetProduct: slug => one(client.from('crm_products').select('slug').eq('slug', slug), 'crmGetProduct'),
+    async crmUpsertProduct(row) {
+      const { error } = await client.from('crm_products').upsert(row, { onConflict: 'slug' })
+      if (error) fail('crmUpsertProduct', error)
+    },
+    async crmInsertLog(row) {
+      const { error } = await client.from('crm_log').insert(row)
+      if (error) fail('crmInsertLog', error)
+    },
+    async crmDeleteLog(id) {
+      const { error } = await client.from('crm_log').delete().eq('id', id)
+      if (error) fail('crmDeleteLog', error)
+    },
+    async crmInsertCreative(row) {
+      const { error } = await client.from('crm_creatives').insert(row)
+      if (error) fail('crmInsertCreative', error)
+    },
+    async crmUpdateCreative(id, row) {
+      const { error } = await client.from('crm_creatives').update(row).eq('id', id)
+      if (error) fail('crmUpdateCreative', error)
+    },
+    async crmDeleteCreative(id) {
+      const { error } = await client.from('crm_creatives').delete().eq('id', id)
+      if (error) fail('crmDeleteCreative', error)
+    },
+
     // Limpieza diaria. Devuelve cuánto limpió.
     async maintenance() {
       const { data, error } = await client.rpc('billing_maintenance')
