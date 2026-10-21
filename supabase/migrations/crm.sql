@@ -70,3 +70,19 @@ alter table public.crm_products  enable row level security;
 alter table public.crm_log       enable row level security;
 alter table public.crm_creatives enable row level security;
 revoke all on public.crm_products, public.crm_log, public.crm_creatives from anon, authenticated;
+
+-- ── Generador de publicidad ───────────────────────────────────────────────
+-- Brief estructurado por producto (el generador solo usa estos textos: no
+-- inventa funciones, precios ni testimonios) y datos para volver a dibujar o
+-- reutilizar cada pieza guardada.
+alter table public.crm_products add column if not exists audience text not null default '' check (char_length(audience) <= 300);
+alter table public.crm_products add column if not exists pains    text not null default '' check (char_length(pains) <= 1500);
+alter table public.crm_products add column if not exists benefits text not null default '' check (char_length(benefits) <= 1500);
+alter table public.crm_products add column if not exists cta      text not null default '' check (char_length(cta) <= 100);
+alter table public.crm_products add column if not exists tone     text not null default '' check (char_length(tone) <= 200);
+alter table public.crm_products add column if not exists hashtags text not null default '' check (char_length(hashtags) <= 300);
+alter table public.crm_products add column if not exists accent   text not null default '' check (accent = '' or accent ~ '^#[0-9a-fA-F]{6}$');
+alter table public.crm_products add column if not exists bg       text not null default '' check (bg = '' or bg ~ '^#[0-9a-fA-F]{6}$');
+
+alter table public.crm_creatives add column if not exists layout jsonb;
+alter table public.crm_creatives add column if not exists prompt text not null default '' check (char_length(prompt) <= 4000);

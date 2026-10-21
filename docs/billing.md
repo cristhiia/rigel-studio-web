@@ -367,3 +367,12 @@ solo endpoint, `api/admin/crm.js` (GET lee todo; POST `{ action }` con `product_
 - **Publicidad** (`crm_creatives`): piezas (post, video, historia) con idea, texto, hashtags, enlace al archivo,
   estado y, una vez publicadas por afuera, resultados cargados a mano y veredicto. No hay ninguna integración
   con Meta ni publicación automática.
+
+### Generador de publicidad
+
+En la pestaña Publicidad: elegir producto, tipo (Post / Historia / Video) y cantidad. Funciona en el navegador, sin costo
+por uso y sin conectarse a ninguna red (`src/lib/adGenerator.js` arma el contenido, `src/lib/adRender.js` dibuja las
+imágenes en un canvas). Solo usa los textos del brief de la ficha (público, dolores, beneficios, funciones, llamado a la
+acción, colores): no inventa funciones, precios ni testimonios. Post (1080×1350) e Historia (1080×1920, con márgenes
+seguros) salen como PNG; Video sale como un prompt para Claude Code que produce el motion graphics. Las piezas se pueden
+guardar en `crm_creatives` (`layout` y `prompt` permiten volver a descargarlas más tarde).

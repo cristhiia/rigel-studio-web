@@ -76,7 +76,7 @@ function ProductCard({ product, numbers, creatives, onOpen }) {
 
 const BLANK = {
   slug: '', name: '', tagline: '', status: 'idea', phase: '', pricing: '', how_it_works: '', features: '', next_steps: '',
-  competition: '', brand_brief: '', links: '', billing_slug: '', manual_users: '0', manual_mrr_ars: '0', sort_order: '100',
+  competition: '', brand_brief: '', links: '', audience: '', pains: '', benefits: '', cta: '', tone: '', hashtags: '', accent: '', bg: '', billing_slug: '', manual_users: '0', manual_mrr_ars: '0', sort_order: '100',
 };
 const toForm = p => Object.fromEntries(Object.keys(BLANK).map(k => [k, p[k] === null || p[k] === undefined ? '' : String(p[k])]));
 const slugify = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -192,9 +192,19 @@ function Ficha({ product, numbers, log, creatives, billing, client, onBack, onCh
         <Field label="Funciones (una por línea)"><textarea style={textarea} maxLength={4000} {...field('features')} /></Field>
         <Field label="Próximos pasos (uno por línea)"><textarea style={textarea} maxLength={4000} {...field('next_steps')} /></Field>
         <Field label="Competencia"><textarea style={textarea} maxLength={4000} {...field('competition')} /></Field>
-        <Field label="Brief para publicidad" hint="A quién le hablamos, qué promesa, tono, qué no decir. Con esto generamos las piezas.">
-          <textarea style={textarea} maxLength={4000} {...field('brand_brief')} />
-        </Field>
+        <h3 style={{ fontFamily: DISPLAY, fontSize: '1.15rem', margin: '28px 0 6px', color: CREAM }}>Brief para publicidad</h3>
+        <p style={{ margin: '0 0 16px', color: CREAM_85 }}>El generador arma las piezas solo con estos textos: no inventa funciones, precios ni testimonios. Escribí cada dolor y cada beneficio como una frase completa.</p>
+        <Field label="Público"><input style={inputStyle} maxLength={300} placeholder="Ej. dueños de kioscos y maxikioscos" {...field('audience')} /></Field>
+        <Field label="Dolores (uno por línea)" hint="Frases que el cliente se dice a sí mismo."><textarea style={textarea} maxLength={1500} {...field('pains')} /></Field>
+        <Field label="Beneficios (uno por línea, mínimo 2)"><textarea style={textarea} maxLength={1500} {...field('benefits')} /></Field>
+        <Field label="Llamado a la acción" hint="Ej. “Sumate al acceso anticipado”."><input style={inputStyle} maxLength={100} {...field('cta')} /></Field>
+        <Field label="Tono (para los videos)"><input style={inputStyle} maxLength={200} {...field('tone')} /></Field>
+        <Field label="Hashtags base"><input style={inputStyle} maxLength={300} placeholder="#kiosco #emprendedores" {...field('hashtags')} /></Field>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 160px' }}><Field label="Color de fondo (#RRGGBB)"><input style={inputStyle} maxLength={7} placeholder="#0b1530" {...field('bg')} /></Field></div>
+          <div style={{ flex: '1 1 160px' }}><Field label="Color de acento (#RRGGBB)"><input style={inputStyle} maxLength={7} placeholder="#6aa7ff" {...field('accent')} /></Field></div>
+        </div>
+        <Field label="Notas de marca (libre)" hint="Lo que no hay que decir, referentes, etc."><textarea style={textarea} maxLength={4000} {...field('brand_brief')} /></Field>
         <Field label="Enlaces (uno por línea: Nombre | https://…)"><textarea style={{ ...textarea, minHeight: 80 }} maxLength={2000} {...field('links')} /></Field>
         <Field label="Producto de cobro conectado" hint="Si cobra por Mercado Pago, elegilo y los números salen solos.">
           <select style={inputStyle} {...field('billing_slug')}>

@@ -4,6 +4,9 @@ import { formatArs } from '../../data/products';
 import { CREAM, CREAM_85, DISPLAY, GOLD } from '../../components/ui/pageStyles';
 import { Badge, Btn, Card, Field, Notice, formatDay, inputStyle } from './adminUi';
 import { LINE } from './AdminShell';
+import Generator from './Generator';
+import { briefOf } from '../../lib/adGenerator';
+import { downloadAd } from '../../lib/adRender';
 
 // Publicidad: las piezas (posts, videos) que se generan para cada producto, su
 // estado y los resultados que se cargan a mano después de publicarlas por
@@ -26,14 +29,16 @@ const textarea = { ...inputStyle, minHeight: 90, resize: 'vertical', lineHeight:
 const nf = new Intl.NumberFormat('es-AR');
 
 const BLANK = {
-  id: null, product: '', kind: 'post', title: '', concept: '', caption: '', hashtags: '', media_url: '', status: 'idea',
+  id: null, layout: null, prompt: '', product: '', kind: 'post', title: '', concept: '', caption: '', hashtags: '', media_url: '', status: 'idea',
   platform: 'instagram', published_on: '', spend_ars: '', verdict: '', learnings: '',
   reach: '', views: '', likes: '', comments: '', saves: '', shares: '', clicks: '', conversions: '',
 };
 const fromRow = c => ({
   ...BLANK,
-  ...Object.fromEntries(Object.keys(BLANK).filter(k => k !== 'id' && k !== 'product').map(k => [k, c[k] === null || c[k] === undefined ? '' : String(c[k])])),
+  ...Object.fromEntries(Object.keys(BLANK).filter(k => !['id', 'product', 'layout', 'prompt'].includes(k)).map(k => [k, c[k] === null || c[k] === undefined ? '' : String(c[k])])),
   id: c.id,
+  layout: c.layout || null,
+  prompt: c.prompt || '',
   product: c.product_slug,
 });
 
@@ -76,6 +81,9 @@ function Editor({ initial, products, client, onClose, onSaved }) {
         <select style={inputStyle} {...field('kind')}>{Object.entries(KINDS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
       </Field>
       <Field label="Idea / guion" hint="Qué muestra y cuál es el gancho."><textarea style={textarea} maxLength={1500} {...field('concept')} /></Field>
+      {(f.kind === 'video' || f.prompt) && (
+        <Field label="Prompt para Claude Code" hint="Lo pegás en Claude Code y te arma el video."><textarea style={{ ...textarea, minHeight: 160 }} maxLength={4000} {...field('prompt')} /></Field>
+      )}
       <Field label="Texto para publicar"><textarea style={textarea} maxLength={2200} {...field('caption')} /></Field>
       <Field label="Hashtags"><input style={inputStyle} maxLength={500} {...field('hashtags')} /></Field>
       <Field label="Enlace al archivo (Drive, etc.)" hint="La imagen o el video se guardan por afuera; acá queda el enlace."><input style={inputStyle} type="url" maxLength={500} placeholder="https://" {...field('media_url')} /></Field>
@@ -111,7 +119,7 @@ function Editor({ initial, products, client, onClose, onSaved }) {
   );
 }
 
-function Piece({ c, productName, onEdit, onDelete, busy }) {
+function Piece({ c, product, productName, onEdit, onDelete, busy }) {
   const st = STATUSES[c.status] || STATUSES.idea;
   const v = c.verdict && VERDICTS[c.verdict];
   const cpr = costPerResult(c);
@@ -134,6 +142,15 @@ function Piece({ c, productName, onEdit, onDelete, busy }) {
       setTimeout(() => setCopied(false), 1800);
     } catch { /* sin portapapeles */ }
   }
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(c.prompt);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 1800);
+    } catch { /* sin portapapeles */ }
+  }
+  const canDraw = c.layout && (c.kind === 'post' || c.kind === 'historia') && product;
   const mediaOk = /^https?:\/\//i.test(c.media_url || '');
   return (
     <Card style={{ marginBottom: 12 }}>
@@ -152,6 +169,10 @@ function Piece({ c, productName, onEdit, onDelete, busy }) {
       {c.learnings && <p style={{ margin: '0 0 10px', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}><strong>Aprendimos:</strong> {c.learnings}</p>}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <Btn onClick={onEdit} disabled={busy}>Editar</Btn>
+        {canDraw && (
+          <Btn onClick={() => { const b = briefOf(product); downloadAd({ layout: c.layout, name: product.name, accent: b.accent, bg: b.bg, format: c.kind }, `${product.slug}-${c.kind}-${c.id}.png`); }}>Descargar imagen</Btn>
+        )}
+        {c.prompt && <Btn onClick={copyPrompt}>{copiedPrompt ? 'Prompt copiado ✓' : 'Copiar prompt'}</Btn>}
         {(c.caption || c.hashtags) && <Btn onClick={copy}>{copied ? 'Copiado ✓' : 'Copiar texto'}</Btn>}
         {mediaOk && <a href={c.media_url} target="_blank" rel="noopener noreferrer" style={{ color: GOLD }}>Abrir archivo</a>}
         <Btn kind="danger" disabled={busy} onClick={onDelete} style={{ marginLeft: 'auto' }}>Borrar</Btn>
@@ -191,9 +212,12 @@ export default function Ads({ client, crm, onReload, initialProduct = '' }) {
     <div>
       <h1 style={{ margin: '0 0 12px', fontFamily: DISPLAY, fontSize: 'clamp(2rem, 5vw, 2.8rem)', color: CREAM }}>Publicidad</h1>
       <p style={{ color: CREAM_85, margin: '0 0 24px' }}>
-        Las piezas que generamos para cada producto y cómo les fue. Las publicás vos por afuera y acá cargás los resultados.
+        Generá posts, historias y videos para cada producto. Las publicás vos por afuera y acá cargás los resultados.
       </p>
 
+      <Generator client={client} crm={crm} onReload={onReload} initialProduct={initialProduct} />
+
+      <h2 style={{ fontFamily: DISPLAY, fontSize: '1.4rem', margin: '8px 0 16px', color: CREAM }}>Piezas guardadas</h2>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
         <select aria-label="Producto" style={{ ...inputStyle, flex: '1 1 200px', width: 'auto' }} value={product} onChange={e => setProduct(e.target.value)}>
           <option value="">Todos los productos</option>
@@ -219,7 +243,7 @@ export default function Ads({ client, crm, onReload, initialProduct = '' }) {
         <p style={{ color: CREAM_85, borderTop: `1px solid ${LINE}`, padding: '20px 0', margin: 0 }}>No hay piezas con este filtro.</p>
       )}
       {shown.map(c => (
-        <Piece key={c.id} c={c} productName={names[c.product_slug] || c.product_slug} busy={busy} onEdit={() => setEditing(fromRow(c))} onDelete={() => remove(c)} />
+        <Piece key={c.id} c={c} product={crm.products.find(p => p.slug === c.product_slug)} productName={names[c.product_slug] || c.product_slug} busy={busy} onEdit={() => setEditing(fromRow(c))} onDelete={() => remove(c)} />
       ))}
     </div>
   );

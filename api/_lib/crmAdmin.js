@@ -16,6 +16,8 @@ export const PLATFORMS = new Set(['instagram', 'facebook', 'tiktok', 'otro'])
 export const VERDICTS = new Set(['funciono', 'no_funciono'])
 export const METRICS = ['reach', 'views', 'likes', 'comments', 'saves', 'shares', 'clicks', 'conversions']
 
+export const THEMES = new Set(['dark', 'accent', 'light'])
+const HEX_RE = /^#[0-9a-fA-F]{6}$/
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,39}$/
 const METRIC_MAX = 1_000_000_000
 const MONEY_MAX = 2_000_000_000
@@ -60,6 +62,27 @@ export function cleanLinks(raw) {
     if (!url) fail('Enlace vacío')
     return label ? `${label} | ${url}` : url
   }).join('\n')
+}
+
+function cleanHex(raw, label) {
+  if (raw === undefined || raw === null || raw === '') return ''
+  if (typeof raw !== 'string' || !HEX_RE.test(raw.trim())) fail(`${label}: usá el formato #RRGGBB`)
+  return raw.trim().toLowerCase()
+}
+
+// Datos para volver a dibujar una pieza (post / historia) desde el panel.
+export function cleanLayout(raw) {
+  if (raw === undefined || raw === null) return null
+  if (!isPlainObject(raw)) fail('Diseño inválido')
+  const bullets = raw.bullets === undefined || raw.bullets === null ? [] : raw.bullets
+  if (!Array.isArray(bullets) || bullets.length > 4) fail('Diseño: hasta 4 puntos')
+  return {
+    headline: cleanText(raw.headline, 120, 'Titular', { required: true }),
+    sub: cleanText(raw.sub, 200, 'Bajada'),
+    bullets: bullets.map(b => cleanText(b, 90, 'Punto', { required: true })),
+    cta: cleanText(raw.cta, 80, 'Llamado a la acción'),
+    theme: oneOf(raw.theme, THEMES, 'Tema', 'dark'),
+  }
 }
 
 function cleanInt(raw, max, label, { nullable = false } = {}) {
@@ -108,6 +131,14 @@ export function parseProduct(body) {
     competition: cleanText(body.competition, 4000, 'Competencia', { multiline: true }),
     brand_brief: cleanText(body.brand_brief, 4000, 'Brief para publicidad', { multiline: true }),
     links: cleanLinks(body.links),
+    audience: cleanText(body.audience, 300, 'Público'),
+    pains: cleanText(body.pains, 1500, 'Dolores', { multiline: true }),
+    benefits: cleanText(body.benefits, 1500, 'Beneficios', { multiline: true }),
+    cta: cleanText(body.cta, 100, 'Llamado a la acción'),
+    tone: cleanText(body.tone, 200, 'Tono'),
+    hashtags: cleanText(body.hashtags, 300, 'Hashtags base'),
+    accent: cleanHex(body.accent, 'Color de acento'),
+    bg: cleanHex(body.bg, 'Color de fondo'),
     billing_slug: billingSlug,
     manual_users: cleanInt(body.manual_users, 10_000_000, 'Usuarios'),
     manual_mrr_ars: cleanInt(body.manual_mrr_ars, MONEY_MAX, 'Ingreso mensual'),
@@ -141,6 +172,8 @@ export function parseCreative(body) {
     published_on: cleanDate(body.published_on, 'Fecha de publicación'),
     verdict: oneOf(body.verdict, VERDICTS, 'Veredicto', null),
     learnings: cleanText(body.learnings, 1000, 'Aprendizajes', { multiline: true }),
+    layout: cleanLayout(body.layout),
+    prompt: cleanText(body.prompt, 4000, 'El prompt', { multiline: true }),
     spend_ars: cleanInt(body.spend_ars, MONEY_MAX, 'Gasto', { nullable: true }),
   }
   for (const m of METRICS) row[m] = cleanInt(body[m], METRIC_MAX, m, { nullable: true })
