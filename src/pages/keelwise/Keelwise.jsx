@@ -43,7 +43,7 @@ const FEATURES = [
 const steps = trialDays => [
   { title: 'Suscribite con tu email', text: `Elegís cómo pagar en Mercado Pago. Los primeros ${trialDays} días no se cobran.` },
   { title: 'Instalá la app', text: 'Te damos el link para bajar Keelwise en tu Android, con instrucciones paso a paso.' },
-  { title: 'Entrá con el mismo email', text: 'Ingresá en la app el email de tu suscripción, te mandamos un código de 6 dígitos y listo.' },
+  { title: 'Entrá con el mismo email', text: 'Ingresá en la app el email de tu suscripción, te mandamos un código de 6 dígitos y listo. Si no lo ves, mirá en Spam o Promociones.' },
 ];
 
 const faq = trialDays => [
@@ -58,6 +58,13 @@ const faq = trialDays => [
     ],
   },
   { q: '¿Funciona en iPhone?', a: ['Por ahora no. Keelwise es solo para Android.'] },
+  {
+    q: 'No me llega el código para entrar',
+    a: [
+      'Revisá la carpeta de Spam o Promociones: a veces el primer mail cae ahí. Si lo encontrás, marcalo como "No es spam" para que los próximos lleguen a tu bandeja principal.',
+      'Fijate también que hayas escrito en la app el mismo email con el que te suscribiste. Si pasaron unos minutos y no llegó, escribinos y te ayudamos.',
+    ],
+  },
   {
     q: '¿Cómo cancelo?',
     a: [
