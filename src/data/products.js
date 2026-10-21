@@ -29,7 +29,7 @@ export const products = [
     status: 'available',
     statusLabel: 'Acceso anticipado',
     description:
-      'Te dice cuánto podés gastar hoy, ordena tus gastos por categoría y te ayuda a ahorrar con un coach con IA.',
+      'Te dice cuánto podés gastar hoy, ordena tus gastos por categoría y te muestra cómo gastás con reportes claros.',
     meta: `USD ${KEELWISE_PRICE.usd} por mes · ${KEELWISE_PRICE.trialDays} días gratis`,
     cta: { label: 'Conocer Keelwise', href: '/keelwise' },
   },

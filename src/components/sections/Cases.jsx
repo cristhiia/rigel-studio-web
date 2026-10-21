@@ -9,13 +9,13 @@ const projects = [
     shortDescription: 'Ecosistema Fintech. Convergencia perfecta entre hardware de billetera inteligente y software de gestión.',
     buttonText: 'Explorar Arquitectura',
     problem: 'Falta de educación financiera y herramientas de gestión desconectadas de la realidad del usuario.',
-    solution: 'Desarrollo de un gestor de gastos con un coach financiero de tono argentino que detecta patrones de consumo y se adapta a las etapas de vida del usuario.',
+    solution: 'Desarrollo de un gestor de gastos con reportes de tono argentino que muestran cuánto se puede gastar por día y detectan patrones de consumo.',
     metrics: [
       { value: '3 meses', label: 'Desarrollo' },
       { value: 'React Native', label: 'Plataforma' },
-      { value: 'IA integrada', label: 'Diferencial' },
+      { value: '100 % local', label: 'Tus datos' },
     ],
-    stack: ['React Native', 'Expo', 'Supabase', 'Anthropic API', 'Google Play'],
+    stack: ['React Native', 'Expo', 'Supabase'],
   },
   {
     id: 2,

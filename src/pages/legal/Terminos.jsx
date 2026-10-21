@@ -32,7 +32,7 @@ const SECTIONS = [
   {
     title: '5. Keelwise no es asesoramiento financiero',
     paragraphs: [
-      'Las cifras, proyecciones y respuestas del coach con IA son orientativas y se basan en los datos que cargás. No constituyen asesoramiento financiero, impositivo ni de inversión. Las decisiones sobre tu dinero son tuyas.',
+      'Las cifras, proyecciones y reportes de la app son orientativos y se basan en los datos que cargás. No constituyen asesoramiento financiero, impositivo ni de inversión. Las decisiones sobre tu dinero son tuyas.',
     ],
   },
   {

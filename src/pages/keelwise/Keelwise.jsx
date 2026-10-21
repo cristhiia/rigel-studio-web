@@ -26,24 +26,24 @@ const billingNote = ({ usd, ars, trialDays }) => {
 const SCREENSHOTS = [
   { file: 'captura-inicio.png', caption: 'Cuánto podés gastar hoy', ready: false },
   { file: 'captura-analisis.png', caption: 'Tus gastos por categoría', ready: false },
-  { file: 'captura-coach.png', caption: 'Coach con IA', ready: false },
+  { file: 'captura-reportes.png', caption: 'Tus reportes', ready: false },
   { file: 'captura-vault.png', caption: 'Tus vaults de ahorro', ready: false },
 ];
 
 // Funciones confirmadas en el código de la app (ver reporte del PR).
 const FEATURES = [
   { title: 'Cuánto podés gastar hoy', text: 'Keelwise toma lo que te queda del mes y te dice cuánto podés gastar hoy sin pasarte.' },
-  { title: 'Gastos por categoría', text: 'Cargás un gasto en segundos, escribiendo o hablando, y ves en qué se te va la plata.' },
-  { title: 'Coach con IA', text: 'Preguntale lo que quieras sobre tu plata. Responde mirando tu ingreso y lo que te queda disponible.' },
+  { title: 'Gastos por categoría', text: 'Cargás un gasto en segundos y ves en qué se te va la plata.' },
+  { title: 'Reportes claros', text: 'Mirá cómo gastaste por día, semana y mes: qué categoría pesa más, cuánto se te va en gastos chicos y cómo viene tu mes frente a tu ingreso.' },
   { title: 'Vaults y Puerto Seguro', text: 'Separá tu ahorro en reservas con nombre y mirá cuánto llevás protegido.' },
   { title: 'Interés compuesto', text: 'Mirá cuánto puede crecer lo que ahorrás si lo dejás trabajar con el tiempo.' },
-  { title: '¿Es posta?', text: '¿Viste una oferta? Compartí el link a Keelwise y la IA te dice si el descuento parece real o inflado.' },
+  { title: 'Mercado', text: 'Llevá tu despensa y tu lista de compras: Keelwise te marca qué falta reponer.' },
 ];
 
 const steps = trialDays => [
   { title: 'Suscribite con tu email', text: `Elegís cómo pagar en Mercado Pago. Los primeros ${trialDays} días no se cobran.` },
   { title: 'Instalá la app', text: 'Te damos el link para bajar Keelwise en tu Android, con instrucciones paso a paso.' },
-  { title: 'Entrá con el mismo email', text: 'Usá el email de tu suscripción para registrarte en la app y listo.' },
+  { title: 'Entrá con el mismo email', text: 'Ingresá en la app el email de tu suscripción, te mandamos un código de 6 dígitos y listo.' },
 ];
 
 const faq = trialDays => [
@@ -69,7 +69,7 @@ const faq = trialDays => [
     q: '¿Qué pasa con mis datos?',
     a: [
       'Tus datos financieros son tuyos. No los vendemos ni los usamos para publicidad.',
-      'Para que algunas funciones anden (por ejemplo el coach con IA) se procesan con proveedores externos. El detalle completo está en la política de privacidad.',
+      'Lo que cargás en la app (ingresos, gastos, metas y ahorros) se guarda solo en tu teléfono. Usamos tu email para que puedas entrar con un código y para confirmar que tu suscripción esté activa. Keelwise no usa inteligencia artificial ni envía tus datos financieros a terceros. El detalle completo está en la política de privacidad.',
     ],
     link: { to: '/privacidad', label: 'Ver política de privacidad' },
   },
@@ -214,7 +214,7 @@ export default function Keelwise() {
         <span style={label}>Keelwise · App para Android · Acceso anticipado</span>
         <h1 style={{ ...h1, maxWidth: 760 }}>Sabé cuánto podés gastar hoy, y llegá a fin de mes.</h1>
         <p style={{ ...body, fontSize: '1.125rem', maxWidth: 620, margin: '24px 0 12px' }}>
-          Keelwise ordena tus gastos, te dice cuánto te queda por día y te ayuda a ahorrar con un coach con IA.
+          Keelwise ordena tus gastos, te dice cuánto te queda por día y te muestra cómo gastás con reportes claros para ahorrar mejor.
         </p>
         <p style={{ fontFamily: DISPLAY, fontWeight: 500, fontSize: '1.15rem', color: CREAM, margin: '0 0 28px' }}>
           {PRICE_LINE}

@@ -24,9 +24,10 @@ const SECTIONS = [
       'Keelwise maneja información financiera personal. Esto es lo que se guarda y dónde:',
     ],
     list: [
-      'Tu cuenta (email) y tu perfil, en la base de datos de Keelwise (Supabase).',
-      'La información que cargás: ingresos, gastos, categorías, metas y ahorros. [Verificar en la app qué datos quedan solo en el teléfono y cuáles se sincronizan con Supabase.]',
-      'Región de los servidores de Supabase: [completar].',
+      'Tu cuenta (email): la usamos para que inicies sesión con un código y para verificar que tu suscripción esté activa. Se guarda en la base de datos de Keelwise (Supabase).',
+      'La información que cargás en la app (ingresos, gastos, categorías, metas, ahorros y tu perfil) se guarda solo en tu teléfono. No se envía a nuestros servidores.',
+      'Estado de tu suscripción (activa, en prueba o vencida) y fechas de vigencia, en la base de datos de Keelwise (Supabase).',
+      'Región de los servidores de Supabase: Este de Estados Unidos (us-east-1).',
     ],
   },
   {
@@ -35,10 +36,11 @@ const SECTIONS = [
       'Algunas funciones necesitan enviar datos a servicios externos. Se envía solo lo necesario para cada función:',
     ],
     list: [
-      'Coach con IA y "¿Es posta?": tus mensajes al coach, junto con tu ingreso mensual, tu saldo disponible y tu perfil, y los links de ofertas que compartas, se envían a Anthropic para generar la respuesta.',
-      'Carga de gastos por voz: el audio se envía a OpenAI para transcribirlo.',
-      'Diagnóstico de errores y uso: la app usa Sentry y Datadog para detectar fallas y medir el rendimiento. [Revisar: la configuración actual de Sentry incluye grabación de sesión, que puede capturar pantallas con información financiera.]',
+      'Inicio de sesión y estado de la suscripción: Supabase (se envía tu email para generar el código y consultar si tu suscripción está activa).',
+      'Envío de los códigos de acceso por email: [completar con el proveedor de email que se configure].',
+      'Diagnóstico de errores: la app usa Sentry para detectar fallas. Se envía información técnica del error y del dispositivo; no se graba la pantalla y está configurado para no enviar datos personales.',
       'Pagos de la suscripción: Mercado Pago.',
+      'Keelwise no usa inteligencia artificial ni envía lo que cargás en la app a servicios de terceros.',
     ],
   },
   {
