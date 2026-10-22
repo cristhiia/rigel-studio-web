@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { adminRequest } from '../../lib/adminAuth';
 import { formatArs } from '../../data/products';
 import { CREAM, CREAM_85, DISPLAY, GOLD } from '../../components/ui/pageStyles';
-import { Badge, Btn, Card, Field, Notice, formatDay, inputStyle } from './adminUi';
+import { Badge, Btn, Card, Field, Notice, TickButtons, formatDay, inputStyle } from './adminUi';
 import { LINE } from './AdminShell';
 import Generator from './Generator';
 import { briefOf } from '../../lib/adGenerator';
@@ -30,7 +30,7 @@ const nf = new Intl.NumberFormat('es-AR');
 
 const BLANK = {
   id: null, layout: null, prompt: '', product: '', kind: 'post', title: '', concept: '', caption: '', hashtags: '', media_url: '', status: 'idea',
-  platform: 'instagram', published_on: '', spend_ars: '', verdict: '', learnings: '',
+  platform: 'instagram', published_on: '', spend_ars: '', verdict: '', tick: '', learnings: '',
   reach: '', views: '', likes: '', comments: '', saves: '', shares: '', clicks: '', conversions: '',
 };
 const fromRow = c => ({
@@ -87,6 +87,13 @@ function Editor({ initial, products, client, onClose, onSaved }) {
       <Field label="Texto para publicar"><textarea style={textarea} maxLength={2200} {...field('caption')} /></Field>
       <Field label="Hashtags"><input style={inputStyle} maxLength={500} {...field('hashtags')} /></Field>
       <Field label="Enlace al archivo (Drive, etc.)" hint="La imagen o el video se guardan por afuera; acá queda el enlace."><input style={inputStyle} type="url" maxLength={500} placeholder="https://" {...field('media_url')} /></Field>
+      <Field label="Diseño" hint="Tu gusto visual: el generador aprende de esto.">
+        <select style={inputStyle} {...field('tick')}>
+          <option value="">Sin calificar</option>
+          <option value="verde">✓ Me gusta</option>
+          <option value="rojo">✗ No me gusta</option>
+        </select>
+      </Field>
       <Field label="Estado">
         <select style={inputStyle} {...field('status')}>{Object.entries(STATUSES).map(([v, s]) => <option key={v} value={v}>{s.label}</option>)}</select>
       </Field>
@@ -119,7 +126,7 @@ function Editor({ initial, products, client, onClose, onSaved }) {
   );
 }
 
-function Piece({ c, product, productName, onEdit, onDelete, busy }) {
+function Piece({ c, product, productName, onEdit, onDelete, onTick, busy }) {
   const st = STATUSES[c.status] || STATUSES.idea;
   const v = c.verdict && VERDICTS[c.verdict];
   const cpr = costPerResult(c);
@@ -159,6 +166,7 @@ function Piece({ c, product, productName, onEdit, onDelete, busy }) {
         <Badge>{KINDS[c.kind] || c.kind}</Badge>
         {c.status === 'publicado' && <Badge>{PLATFORMS[c.platform] || c.platform}</Badge>}
         {v && <Badge color={v.color}>{v.label}</Badge>}
+        {c.layout && c.layout.vibe && <Badge>{{ relajada: 'Relajada', estandar: 'Estándar', alocada: 'Alocada' }[c.layout.vibe] || c.layout.vibe}</Badge>}
       </div>
       <h3 style={{ margin: 0, fontFamily: DISPLAY, fontSize: '1.2rem', overflowWrap: 'anywhere' }}>{c.title}</h3>
       <p style={{ margin: '4px 0 10px', color: CREAM_85, fontSize: '0.9rem' }}>
@@ -168,6 +176,7 @@ function Piece({ c, product, productName, onEdit, onDelete, busy }) {
       {stats.length > 0 && <p style={{ margin: '0 0 10px', color: CREAM_85 }}>{stats.join(' · ')}</p>}
       {c.learnings && <p style={{ margin: '0 0 10px', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}><strong>Aprendimos:</strong> {c.learnings}</p>}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <TickButtons value={c.tick || ''} disabled={busy} onTick={onTick} />
         <Btn onClick={onEdit} disabled={busy}>Editar</Btn>
         {canDraw && (
           <Btn onClick={() => { const b = briefOf(product); downloadAd({ layout: c.layout, name: product.name, accent: b.accent, bg: b.bg, format: c.kind }, `${product.slug}-${c.kind}-${c.id}.png`); }}>Descargar imagen</Btn>
@@ -192,6 +201,19 @@ export default function Ads({ client, crm, onReload, initialProduct = '' }) {
   const shown = inProduct.filter(c => !status || c.status === status);
   const worked = inProduct.filter(c => c.verdict === 'funciono').length;
   const failed = inProduct.filter(c => c.verdict === 'no_funciono').length;
+
+  async function tickPiece(c, tick) {
+    setBusy(true);
+    setError('');
+    try {
+      await adminRequest(client, 'crm', { method: 'POST', body: { action: 'creative_tick', id: c.id, tick } });
+      await onReload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function remove(c) {
     // eslint-disable-next-line no-alert
@@ -231,7 +253,7 @@ export default function Ads({ client, crm, onReload, initialProduct = '' }) {
       </div>
 
       <p style={{ color: CREAM_85, margin: '0 0 20px' }}>
-        {inProduct.length} {inProduct.length === 1 ? 'pieza' : 'piezas'} · {worked} funcionaron · {failed} no funcionaron
+        {inProduct.length} {inProduct.length === 1 ? 'pieza' : 'piezas'} · {inProduct.filter(c => c.tick === 'verde').length} ✓ · {inProduct.filter(c => c.tick === 'rojo').length} ✗ · {worked} funcionaron · {failed} no funcionaron
       </p>
 
       {error && <Notice kind="error">{error}</Notice>}
@@ -243,7 +265,7 @@ export default function Ads({ client, crm, onReload, initialProduct = '' }) {
         <p style={{ color: CREAM_85, borderTop: `1px solid ${LINE}`, padding: '20px 0', margin: 0 }}>No hay piezas con este filtro.</p>
       )}
       {shown.map(c => (
-        <Piece key={c.id} c={c} product={crm.products.find(p => p.slug === c.product_slug)} productName={names[c.product_slug] || c.product_slug} busy={busy} onEdit={() => setEditing(fromRow(c))} onDelete={() => remove(c)} />
+        <Piece key={c.id} c={c} product={crm.products.find(p => p.slug === c.product_slug)} productName={names[c.product_slug] || c.product_slug} busy={busy} onEdit={() => setEditing(fromRow(c))} onDelete={() => remove(c)} onTick={tick => tickPiece(c, tick)} />
       ))}
     </div>
   );

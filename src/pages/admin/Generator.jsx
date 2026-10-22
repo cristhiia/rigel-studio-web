@@ -1,21 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { adminRequest } from '../../lib/adminAuth';
-import { FORMATS, MAX_PER_RUN, generatePieces } from '../../lib/adGenerator';
+import { FORMATS, MAX_PER_RUN, SLOT_LABELS, generatePieces } from '../../lib/adGenerator';
+import { learn, summarize } from '../../lib/adLearning';
 import { downloadAd, renderAd } from '../../lib/adRender';
-import { CREAM, CREAM_85, DISPLAY } from '../../components/ui/pageStyles';
-import { Btn, Card, Field, Notice, inputStyle } from './adminUi';
+import { CREAM, CREAM_85, DISPLAY, GOLD } from '../../components/ui/pageStyles';
+import { Badge, Btn, Card, Field, Notice, TickButtons, inputStyle } from './adminUi';
 import { LINE } from './AdminShell';
 
-// Generador: elegís producto, tipo y cantidad y arma las piezas al instante a
-// partir del brief del producto (sin costo por uso, sin conexión a redes).
+// Generador: elegís producto, tipo y cantidad de ideas y arma cada una en 3 variantes
+// (relajada, estándar al medio y alocada) a partir del brief del producto, sin costo
+// por uso y sin conexión a redes.
 //  · Post / Historia → imagen PNG lista para descargar.
 //  · Video → prompt para pegar en Claude Code y producir el motion graphics.
+// Con ✓ / ✗ calificás el diseño; eso se guarda en el CRM y el generador aprende.
 
 const KIND_HELP = {
   post: 'Imagen 1080×1350 para el feed.',
   historia: 'Imagen 1080×1920 con márgenes seguros para historias.',
   video: 'Prompt para Claude Code que arma un video vertical en motion graphics.',
 };
+const SLOT_COLOR = { relajada: '#7DD3A8', estandar: GOLD, alocada: '#F28B82' };
 
 function useCopy() {
   const [copied, setCopied] = useState('');
@@ -37,33 +41,63 @@ function Preview({ piece, product, brief }) {
     }
   }, [piece, product.name, brief.accent, brief.bg]);
   const { w, h } = FORMATS[piece.kind];
-  return <canvas ref={ref} width={w} height={h} role="img" aria-label={piece.title} style={{ width: '100%', maxWidth: 260, height: 'auto', borderRadius: 10, border: `1px solid ${LINE}`, display: 'block' }} />;
+  return <canvas ref={ref} width={w} height={h} role="img" aria-label={piece.title} style={{ width: '100%', height: 'auto', borderRadius: 10, border: `1px solid ${LINE}`, display: 'block' }} />;
 }
 
-function GeneratedPiece({ piece, product, brief, saved, busy, onSave }) {
+function Variant({ piece, product, brief, state, busy, adapted, onTick, onSave }) {
   const [copied, copy] = useCopy();
   const slug = product.slug;
+  const color = SLOT_COLOR[piece.slot];
+  const learnedStyle = piece.slot === 'estandar' && adapted && piece.layout.tpl !== 'clasica';
   return (
-    <Card style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-        {piece.kind !== 'video' && <Preview piece={piece} product={product} brief={brief} />}
-        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-          <h3 style={{ margin: '0 0 8px', fontFamily: DISPLAY, fontSize: '1.1rem', overflowWrap: 'anywhere' }}>{piece.title}</h3>
-          {piece.kind === 'video' ? (
-            <textarea readOnly aria-label="Prompt para Claude Code" value={piece.prompt} style={{ ...inputStyle, minHeight: 230, lineHeight: 1.45, fontSize: '0.9rem' }} onFocus={e => e.target.select()} />
-          ) : (
-            <p style={{ margin: '0 0 10px', whiteSpace: 'pre-wrap', color: CREAM_85, overflowWrap: 'anywhere' }}>{piece.caption}</p>
-          )}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-            {piece.kind === 'video'
-              ? <Btn kind="primary" onClick={() => copy('p', piece.prompt)}>{copied === 'p' ? 'Copiado ✓' : 'Copiar prompt'}</Btn>
-              : <Btn kind="primary" onClick={() => downloadAd({ layout: piece.layout, name: product.name, accent: brief.accent, bg: brief.bg, format: piece.kind }, `${slug}-${piece.kind}-${piece.angle}.png`)}>Descargar imagen</Btn>}
-            {piece.kind !== 'video' && <Btn onClick={() => copy('t', [piece.caption, piece.hashtags].filter(Boolean).join('\n\n'))}>{copied === 't' ? 'Copiado ✓' : 'Copiar texto'}</Btn>}
-            <Btn disabled={busy || saved} onClick={onSave}>{saved ? 'Guardada ✓' : 'Guardar en el CRM'}</Btn>
-          </div>
-        </div>
+    <Card style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0, borderColor: color }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Badge color={color}>{SLOT_LABELS[piece.slot]}</Badge>
+        {learnedStyle && <Badge>con lo que aprendió</Badge>}
+        {state && state.id && <Badge color="#7DD3A8">Guardada</Badge>}
+      </div>
+      {piece.kind === 'video' ? (
+        <textarea readOnly aria-label="Prompt para Claude Code" value={piece.prompt} style={{ ...inputStyle, minHeight: 200, lineHeight: 1.45, fontSize: '0.85rem' }} onFocus={e => e.target.select()} />
+      ) : (
+        <Preview piece={piece} product={product} brief={brief} />
+      )}
+      {piece.kind !== 'video' && <p style={{ margin: 0, whiteSpace: 'pre-wrap', color: CREAM_85, overflowWrap: 'anywhere', fontSize: '0.9rem', maxHeight: 120, overflow: 'hidden' }}>{piece.caption}</p>}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 'auto' }}>
+        <TickButtons value={state ? state.tick : ''} disabled={busy} onTick={onTick} />
+        {piece.kind === 'video'
+          ? <Btn kind="primary" onClick={() => copy('p', piece.prompt)}>{copied === 'p' ? 'Copiado ✓' : 'Copiar prompt'}</Btn>
+          : <Btn kind="primary" onClick={() => downloadAd({ layout: piece.layout, name: product.name, accent: brief.accent, bg: brief.bg, format: piece.kind }, `${slug}-${piece.kind}-${piece.angle}-${piece.slot}.png`)}>Descargar</Btn>}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {piece.kind !== 'video' && <Btn onClick={() => copy('t', [piece.caption, piece.hashtags].filter(Boolean).join('\n\n'))}>{copied === 't' ? 'Copiado ✓' : 'Copiar texto'}</Btn>}
+        <Btn disabled={busy || Boolean(state && state.id)} onClick={onSave}>{state && state.id ? 'En el CRM ✓' : 'Guardar en el CRM'}</Btn>
       </div>
     </Card>
+  );
+}
+
+function LearnedPanel({ summary, onReset, busy }) {
+  const chip = (r, color) => <Badge key={r.trait} color={color}>{r.label}</Badge>;
+  return (
+    <div style={{ margin: '18px 0 0', padding: '14px 16px', border: `1px solid ${LINE}`, borderRadius: 12 }}>
+      <p style={{ margin: '0 0 8px', color: CREAM, fontFamily: DISPLAY }}>Lo que aprendió de este producto</p>
+      {summary.rated === 0 ? (
+        <p style={{ margin: 0, color: CREAM_85 }}>
+          Todavía nada. Dale ✓ o ✗ a las piezas que te gusten o no, y cuando cargues el alcance de las publicadas eso también suma.
+          Se empieza a notar con unas 10 o 15 piezas calificadas.
+        </p>
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          <p style={{ margin: 0, color: CREAM_85 }}>{summary.rated} {summary.rated === 1 ? 'pieza calificada' : 'piezas calificadas'}.</p>
+          {summary.likes.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}><span style={{ color: CREAM_85 }}>Usa más:</span>{summary.likes.map(r => chip(r, '#7DD3A8'))}</div>}
+          {summary.dislikes.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}><span style={{ color: CREAM_85 }}>Evita:</span>{summary.dislikes.map(r => chip(r, '#F28B82'))}</div>}
+          {summary.likes.length === 0 && summary.dislikes.length === 0 && <p style={{ margin: 0, color: CREAM_85 }}>Todavía no hay una preferencia clara.</p>}
+        </div>
+      )}
+      <div style={{ marginTop: 12 }}>
+        <Btn kind="danger" disabled={busy} onClick={onReset}>Reiniciar lo aprendido</Btn>
+      </div>
+    </div>
   );
 }
 
@@ -71,61 +105,102 @@ export default function Generator({ client, crm, onReload, initialProduct = '' }
   const candidates = crm.products.filter(p => p.status !== 'archivado');
   const [slug, setSlug] = useState(initialProduct || (candidates[0] && candidates[0].slug) || '');
   const [kind, setKind] = useState('post');
-  const [count, setCount] = useState(5);
-  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e6) + 1);
+  const [count, setCount] = useState(2);
   const [result, setResult] = useState(null);
-  const [savedIdx, setSavedIdx] = useState(() => new Set());
+  // Por pieza generada: { id, tick } una vez guardada en el CRM.
+  const [saved, setSaved] = useState({});
+  const [seed, setSeed] = useState(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   const product = crm.products.find(p => p.slug === slug);
-
-  function generate(nextSeed) {
-    if (!product) return;
-    setError('');
-    setSavedIdx(new Set());
-    setResult({ product, ...generatePieces(product, { kind, count, seed: nextSeed }) });
-  }
+  const summary = useMemo(
+    () => summarize(learn(crm.creatives, { slug, kind, since: product && product.learning_since })),
+    [crm.creatives, slug, kind, product],
+  );
 
   function run() {
+    if (!product) return;
     const s = Math.floor(Math.random() * 1e6) + 1;
     setSeed(s);
-    generate(s);
+    setError('');
+    setSaved({});
+    setResult({ product, ...generatePieces(product, { kind, count, seed: s, creatives: crm.creatives, since: product.learning_since }) });
   }
 
-  async function save(indexes) {
-    if (!result) return;
+  const keyOf = (i, slot) => `${i}-${slot}`;
+
+  function bodyFor(p, tick) {
+    return {
+      action: 'creative_save', product: result.product.slug, kind: p.kind, title: p.title, concept: p.concept,
+      caption: p.caption, hashtags: p.hashtags, status: 'listo', layout: p.layout, prompt: p.prompt, tick: tick || undefined,
+    };
+  }
+
+  // Guarda la pieza (si hace falta) y le pone el tick; sin tick solo guarda.
+  async function setTick(i, p, tick) {
     setBusy(true);
     setError('');
-    const done = new Set(savedIdx);
+    const key = keyOf(i, p.slot);
     try {
-      for (const i of indexes) {
-        const p = result.pieces[i];
-        await adminRequest(client, 'crm', {
-          method: 'POST',
-          body: {
-            action: 'creative_save', product: result.product.slug, kind: p.kind, title: p.title, concept: p.concept,
-            caption: p.caption, hashtags: p.hashtags, status: 'listo', layout: p.layout, prompt: p.prompt,
-          },
-        });
-        done.add(i);
+      const cur = saved[key];
+      if (cur && cur.id) {
+        await adminRequest(client, 'crm', { method: 'POST', body: { action: 'creative_tick', id: cur.id, tick } });
+        setSaved(s => ({ ...s, [key]: { id: cur.id, tick } }));
+      } else {
+        const res = await adminRequest(client, 'crm', { method: 'POST', body: bodyFor(p, tick) });
+        setSaved(s => ({ ...s, [key]: { id: res.id, tick } }));
       }
     } catch (err) {
       setError(err.message);
     } finally {
-      setSavedIdx(done);
       setBusy(false);
       await onReload();
     }
   }
 
-  const pending = result ? result.pieces.map((_, i) => i).filter(i => !savedIdx.has(i)) : [];
+  async function saveMany(entries) {
+    setBusy(true);
+    setError('');
+    const next = { ...saved };
+    try {
+      for (const [i, p] of entries) {
+        const res = await adminRequest(client, 'crm', { method: 'POST', body: bodyFor(p, '') });
+        next[keyOf(i, p.slot)] = { id: res.id, tick: '' };
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaved(next);
+      setBusy(false);
+      await onReload();
+    }
+  }
+
+  async function reset() {
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(`¿Reiniciar lo aprendido de ${product.name}? Las piezas y tus ticks quedan guardados, pero el generador deja de tenerlos en cuenta.`)) return;
+    setBusy(true);
+    setError('');
+    try {
+      await adminRequest(client, 'crm', { method: 'POST', body: { action: 'learning_reset', product: product.slug } });
+      await onReload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const all = result ? result.ideas.flatMap((idea, ii) => idea.variants.map(v => [ii, v])) : [];
+  const pending = all.filter(([i, v]) => !(saved[keyOf(i, v.slot)] && saved[keyOf(i, v.slot)].id));
+  const savedCount = all.length - pending.length;
 
   return (
     <Card style={{ marginBottom: 28 }}>
       <h2 style={{ fontFamily: DISPLAY, fontSize: '1.4rem', margin: '0 0 6px', color: CREAM }}>Generar piezas</h2>
       <p style={{ margin: '0 0 18px', color: CREAM_85 }}>
-        Elegí el producto y el tipo, y se arman al instante con el brief de la ficha. Cambian cada vez que apretás Generar.
+        Cada idea sale en 3 variantes: relajada, estándar (la del medio) y alocada. Descargá las que te sirvan y calificá el diseño con ✓ o ✗ para que el generador aprenda lo que te gusta.
       </p>
       <Field label="Producto">
         <select style={inputStyle} value={slug} onChange={e => { setSlug(e.target.value); setResult(null); }}>
@@ -141,14 +216,16 @@ export default function Generator({ client, crm, onReload, initialProduct = '' }
           </Field>
         </div>
         <div style={{ flex: '1 1 140px' }}>
-          <Field label="Cuántas">
+          <Field label="Cuántas ideas" hint="Cada una trae 3 variantes.">
             <select style={inputStyle} value={count} onChange={e => setCount(Number(e.target.value))}>
-              {[1, 3, 5, 8, MAX_PER_RUN].map(n => <option key={n} value={n}>{n}</option>)}
+              {[1, 2, 3, MAX_PER_RUN].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           </Field>
         </div>
       </div>
       <Btn kind="primary" disabled={!product} onClick={run}>{result ? 'Generar otras' : 'Generar'}</Btn>
+
+      <LearnedPanel summary={summary} busy={busy} onReset={reset} />
 
       {error && <Notice kind="error">{error}</Notice>}
       {result && result.issues.length > 0 && (
@@ -156,14 +233,33 @@ export default function Generator({ client, crm, onReload, initialProduct = '' }
           A la ficha de {result.product.name} le falta: {result.issues.join(' y ')}. Completalo en Productos → {result.product.name} → “Brief para publicidad” y volvé a generar.
         </Notice>
       )}
-      {result && result.pieces.length > 0 && (
+      {result && result.ideas.length > 0 && (
         <div style={{ marginTop: 22 }}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-            <p style={{ margin: 0, color: CREAM_85 }}>{result.pieces.length} piezas generadas · {savedIdx.size} guardadas</p>
-            {pending.length > 0 && <Btn disabled={busy} onClick={() => save(pending)}>{busy ? 'Guardando…' : 'Guardar todas en el CRM'}</Btn>}
+            <p style={{ margin: 0, color: CREAM_85 }}>{result.ideas.length} {result.ideas.length === 1 ? 'idea' : 'ideas'} · {all.length} piezas · {savedCount} guardadas</p>
+            {pending.length > 0 && <Btn disabled={busy} onClick={() => saveMany(pending)}>{busy ? 'Guardando…' : 'Guardar todas en el CRM'}</Btn>}
           </div>
-          {result.pieces.map((p, i) => (
-            <GeneratedPiece key={`${seed}-${i}`} piece={p} product={result.product} brief={result.brief} saved={savedIdx.has(i)} busy={busy} onSave={() => save([i])} />
+          {result.ideas.map((idea, ii) => (
+            <div key={`${seed}-${ii}`} style={{ marginBottom: 26 }}>
+              <h3 style={{ margin: '0 0 10px', fontFamily: DISPLAY, fontSize: '1.1rem', color: CREAM, overflowWrap: 'anywhere' }}>
+                Idea {ii + 1} · {idea.label}
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+                {idea.variants.map(p => (
+                  <Variant
+                    key={p.slot}
+                    piece={p}
+                    product={result.product}
+                    brief={result.brief}
+                    adapted={result.adapted}
+                    state={saved[keyOf(ii, p.slot)]}
+                    busy={busy}
+                    onTick={tick => setTick(ii, p, tick)}
+                    onSave={() => saveMany([[ii, p]])}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

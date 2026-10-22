@@ -86,3 +86,9 @@ alter table public.crm_products add column if not exists bg       text not null 
 
 alter table public.crm_creatives add column if not exists layout jsonb;
 alter table public.crm_creatives add column if not exists prompt text not null default '' check (char_length(prompt) <= 4000);
+
+-- ── Aprendizaje de estilos ────────────────────────────────────────────────
+-- tick: gusto visual (verde / rojo) que se le da a cada pieza generada.
+-- learning_since: al reiniciar lo aprendido, el generador ignora lo anterior.
+alter table public.crm_creatives add column if not exists tick text check (tick is null or tick in ('verde', 'rojo'));
+alter table public.crm_products  add column if not exists learning_since timestamptz;

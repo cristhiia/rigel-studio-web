@@ -1,8 +1,12 @@
 // Generador de piezas de publicidad. Funciones puras: sin red, sin costo por uso.
+// Cada idea sale en 3 variantes (relajada, estándar, alocada) y el estilo se
+// ajusta con lo que aprendió de los ticks y resultados (adLearning).
 //
 // Regla de oro: solo usa los textos del brief del producto (público, dolores,
 // beneficios, funciones, llamado a la acción). No inventa funciones, precios,
 // números ni testimonios. Si el brief es pobre, avisa qué falta en vez de rellenar.
+
+import { EMPTY, candidateWeight, isBlocked, learn, summarize, traitWeight } from './adLearning';
 
 export const FORMATS = {
   post: { w: 1080, h: 1350, label: 'Post' },
@@ -10,7 +14,14 @@ export const FORMATS = {
   video: { w: 1080, h: 1920, label: 'Video' },
 };
 export const THEMES = ['dark', 'accent', 'light'];
-export const MAX_PER_RUN = 10;
+// Cuántas ideas (cada una con 3 variantes) se generan como máximo por vez.
+export const MAX_PER_RUN = 5;
+// Estilos: la del medio es la estándar, a los costados una más tranquila y una más atrevida.
+export const SLOTS = ['relajada', 'estandar', 'alocada'];
+export const SLOT_LABELS = { relajada: 'Relajada', estandar: 'Estándar', alocada: 'Alocada' };
+export const TEMPLATE_GROUPS = { relajada: ['aireada', 'minimal'], estandar: ['clasica'], alocada: ['cartel', 'bloques', 'diagonal'] };
+export const TEMPLATES = Object.values(TEMPLATE_GROUPS).flat();
+export const groupOf = tpl => SLOTS.find(s => TEMPLATE_GROUPS[s].includes(tpl)) || 'estandar';
 
 const lines = text => String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
 const clip = (text, max) => {
@@ -67,8 +78,8 @@ function shuffled(list, rand) {
 }
 
 // Cada ángulo arma el contenido de una pieza a partir del brief. `n` rota qué
-// dolor o beneficio se usa para que las piezas de una tanda no se repitan.
-const ANGLES = [
+// dolor o beneficio se usa para que las ideas de una tanda no se repitan.
+export const ANGLES = [
   {
     id: 'dolor',
     label: 'Dolor → solución',
@@ -116,15 +127,21 @@ const ANGLES = [
   },
 ];
 
-function layoutFor(brief, angle, n, theme) {
+// Contenido de una idea (el mismo texto para sus 3 variantes).
+function contentFor(brief, angle, n) {
   const raw = angle.build(brief, n);
   return {
     headline: clip(raw.headline, 120),
     sub: clip(raw.sub, 200),
     bullets: (raw.bullets || []).slice(0, 4).map(x => clip(x, 90)),
     cta: clip(brief.cta, 80),
-    theme,
+    angle: angle.id,
   };
+}
+
+function layoutOf(content, slot, tpl, theme) {
+  const bullets = slot === 'estandar' ? content.bullets : content.bullets.slice(0, 2);
+  return { ...content, bullets, tpl, theme, vibe: slot };
 }
 
 function captionFor(layout) {
@@ -137,8 +154,24 @@ function captionFor(layout) {
 
 const slugOf = s => String(s || 'pieza').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'pieza';
 
+const VIDEO_STYLE = {
+  relajada: {
+    look: 'Estilo tranquilo y limpio: mucho aire, tipografía liviana, un solo movimiento por escena.',
+    motion: 'Transiciones lentas de 0,6 s con fundido suave (ease-in-out); cada texto entra con un leve desplazamiento y sale antes de la siguiente escena.',
+  },
+  estandar: {
+    look: 'Estilo claro y directo.',
+    motion: 'Transiciones de 0,3 s con ease-out; cada texto entra animado y sale antes de la siguiente escena.',
+  },
+  alocada: {
+    look: 'Estilo atrevido y cinético: texto gigante, formas geométricas, rotaciones y marcadores de color; energía alta pero siempre legible.',
+    motion: 'Cortes rápidos de 0,2 s con rebote (overshoot), zooms y giros de texto, formas que barren la pantalla y glitch leve; el texto se mantiene al menos 1,5 s en pantalla.',
+  },
+};
+
 // Prompt listo para pegar en Claude Code y producir el video en motion graphics.
 export function videoPrompt(brief, layout, index = 1) {
+  const style = VIDEO_STYLE[groupOf(layout.tpl)] || VIDEO_STYLE.estandar;
   const items = [layout.headline, ...layout.bullets];
   const sceneSecs = 3;
   let t = 0;
@@ -159,6 +192,7 @@ export function videoPrompt(brief, layout, index = 1) {
     '',
     'Formato: 1080×1920 (9:16), 30 fps, MP4 H.264. Es motion graphics: texto y formas animadas. Sin voz, sin música con derechos, sin imágenes de stock ni caras.',
     `Identidad: fondo ${bg}, texto ${fg}, acento ${accent}. Tipografía sans-serif gruesa (Space Grotesk o Inter).${brief.tone ? ` Tono: ${brief.tone}.` : ''}`,
+    style.look,
     brief.audience ? `Público: ${brief.audience}.` : '',
     '',
     'Escenas (el texto en pantalla es exacto, no lo cambies ni agregues otros):',
@@ -166,45 +200,102 @@ export function videoPrompt(brief, layout, index = 1) {
     '',
     'Reglas:',
     '- Texto grande y legible en un celular; nada de texto en los 250 px de arriba ni en los 340 px de abajo (zona tapada por la interfaz).',
-    '- Transiciones de 0,3 s con ease-out; cada texto entra animado y sale antes de la siguiente escena.',
+    `- ${style.motion}`,
     '- No inventes funciones, precios, números ni testimonios: usá solo los textos de arriba.',
     '',
-    `Entrega: guardá el resultado como ./salida/${slugOf(brief.name)}-video-${index}.mp4 y decime la ruta. Usá tu skill de motion graphics si la tenés instalada; si no, Remotion, o HTML + CSS renderizado con Playwright y ffmpeg.`,
+    `Entrega: guardá el resultado como ./salida/${slugOf(brief.name)}-video-${index}-${layout.vibe || 'estandar'}.mp4 y decime la ruta. Usá tu skill de motion graphics si la tenés instalada; si no, Remotion, o HTML + CSS renderizado con Playwright y ffmpeg.`,
   ].filter((l, i, a) => !(l === '' && (a[i - 1] === '' || a[i - 1] === undefined))).join('\n');
 }
 
-// Genera `count` piezas del tipo `kind` ('post' | 'historia' | 'video').
-// `seed` permite regenerar una tanda distinta.
-export function generatePieces(product, { kind, count = 5, seed = 1 }) {
+// Elige un elemento según su peso (mayor peso, más probable).
+function weightedPick(items, weightOf, rand) {
+  const ws = items.map(weightOf);
+  let r = rand() * ws.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < items.length; i += 1) {
+    r -= ws[i];
+    if (r <= 0) return items[i];
+  }
+  return items[items.length - 1];
+}
+
+// Ordena con probabilidad proporcional al peso (muestreo sin reposición).
+function weightedOrder(items, weightOf, rand) {
+  return items
+    .map(item => ({ item, key: rand() ** (1 / weightOf(item)) }))
+    .sort((a, b) => b.key - a.key)
+    .map(x => x.item);
+}
+
+// Decide plantilla y fondo de las 3 variantes de una idea.
+function pickStyles(content, learned, rand) {
+  const usedTimes = tpl => learned.used.get(tpl) || 0;
+  const options = (tpls, themes, slot) => {
+    const all = tpls.flatMap(tpl => themes.map(theme => ({ tpl, theme, layout: layoutOf(content, slot, tpl, theme) })));
+    const free = all.filter(o => !isBlocked(learned, o.layout));
+    return free.length ? free : all;
+  };
+
+  // Estándar: la plantilla de siempre, salvo que ya haya un estilo claramente preferido.
+  const everything = options(TEMPLATES, THEMES, 'estandar');
+  const best = everything.reduce((m, o) => (candidateWeight(learned, o.layout) > candidateWeight(learned, m.layout) ? o : m), everything[0]);
+  const adapted = candidateWeight(learned, best.layout) > 1.15;
+  const standard = adapted
+    ? best
+    : weightedPick(options(TEMPLATE_GROUPS.estandar, THEMES, 'estandar'), o => candidateWeight(learned, o.layout), rand);
+
+  const novelty = o => 1 / (1 + usedTimes(o.tpl) * 0.5);
+  const calm = weightedPick(
+    options(TEMPLATE_GROUPS.relajada.filter(t => t !== standard.tpl), ['dark', 'light'], 'relajada'),
+    o => candidateWeight(learned, o.layout) * novelty(o) * (o.theme === standard.theme ? 1 : 1.4),
+    rand,
+  );
+  const wild = weightedPick(
+    options(TEMPLATE_GROUPS.alocada.filter(t => t !== standard.tpl), THEMES, 'alocada'),
+    o => candidateWeight(learned, o.layout) * novelty(o) ** 2 * (o.theme === standard.theme ? 1 : 1.6),
+    rand,
+  );
+  return { adapted, styles: { relajada: calm, estandar: standard, alocada: wild } };
+}
+
+// Genera `count` ideas, cada una con 3 variantes (relajada, estándar, alocada), del tipo
+// `kind` ('post' | 'historia' | 'video'). `seed` permite regenerar una tanda distinta.
+// `creatives` y `since` son las piezas guardadas y la fecha desde la que se aprende.
+export function generatePieces(product, { kind, count = 2, seed = 1, creatives = [], since = null }) {
   if (!FORMATS[kind]) throw new Error('Tipo de pieza inválido');
   const brief = briefOf(product);
   const issues = briefIssues(brief);
-  if (issues.length) return { brief, issues, pieces: [] };
+  if (issues.length) return { brief, issues, ideas: [], pieces: [], learned: summarize(EMPTY), adapted: false };
 
+  const learned = learn(creatives, { slug: product.slug, kind, since });
   const n = Math.max(1, Math.min(MAX_PER_RUN, Math.floor(count) || 1));
   const rand = rng(seed);
-  const angles = ANGLES.filter(a => a.ok(brief));
-  const order = shuffled(angles, rand);
-  const themeStart = Math.floor(rand() * THEMES.length);
-  const pieces = [];
+  const angles = weightedOrder(ANGLES.filter(a => a.ok(brief)), a => traitWeight(learned, `angle:${a.id}`), rand);
+  const ideas = [];
+  let adaptedAny = false;
   for (let i = 0; i < n; i += 1) {
-    const angle = order[i % order.length];
-    const round = Math.floor(i / order.length);
-    const layout = layoutFor(brief, angle, i + round, THEMES[(themeStart + i) % THEMES.length]);
-    const prompt = kind === 'video' ? videoPrompt(brief, layout, i + 1) : '';
-    const size = FORMATS[kind];
-    pieces.push({
-      kind,
-      angle: angle.id,
-      title: clip(`${FORMATS[kind].label} · ${angle.label}: ${layout.headline}`, 120),
-      concept: kind === 'video'
-        ? `Video vertical de motion graphics. Ángulo: ${angle.label}. Gancho: “${layout.headline}”.`
-        : `${size.label} ${size.w}×${size.h}, fondo ${layout.theme === 'dark' ? 'oscuro' : layout.theme === 'light' ? 'claro' : 'de color'}. Ángulo: ${angle.label}.`,
-      caption: captionFor(layout),
-      hashtags: brief.hashtags,
-      layout,
-      prompt,
+    const angle = angles[i % angles.length];
+    const round = Math.floor(i / angles.length);
+    const content = contentFor(brief, angle, i + round);
+    const { adapted, styles } = pickStyles(content, learned, rand);
+    adaptedAny = adaptedAny || adapted;
+    const variants = SLOTS.map(slot => {
+      const layout = styles[slot].layout;
+      const size = FORMATS[kind];
+      return {
+        slot,
+        kind,
+        angle: angle.id,
+        title: clip(`${FORMATS[kind].label} · ${SLOT_LABELS[slot]} · ${angle.label}: ${layout.headline}`, 120),
+        concept: kind === 'video'
+          ? `Video vertical de motion graphics, estilo ${SLOT_LABELS[slot].toLowerCase()}. Ángulo: ${angle.label}. Gancho: “${layout.headline}”.`
+          : `${size.label} ${size.w}×${size.h}, estilo ${SLOT_LABELS[slot].toLowerCase()} (${layout.tpl}), fondo ${layout.theme === 'dark' ? 'oscuro' : layout.theme === 'light' ? 'claro' : 'de color'}. Ángulo: ${angle.label}.`,
+        caption: captionFor(layout),
+        hashtags: brief.hashtags,
+        layout,
+        prompt: kind === 'video' ? videoPrompt(brief, layout, i + 1) : '',
+      };
     });
+    ideas.push({ angle: angle.id, label: angle.label, variants });
   }
-  return { brief, issues: [], pieces };
+  return { brief, issues: [], ideas, pieces: ideas.flatMap(i => i.variants), learned: summarize(learned), adapted: adaptedAny };
 }

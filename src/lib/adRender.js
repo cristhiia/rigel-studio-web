@@ -1,5 +1,6 @@
 // Dibuja un post o una historia en un <canvas> a partir del layout de la pieza
-// (titular, bajada, puntos, llamado a la acción) y los colores del producto.
+// (titular, bajada, puntos, llamado a la acción, plantilla y tema) y los colores
+// del producto. Cada plantilla es una función que recibe el contexto ya preparado.
 import { FORMATS } from './adGenerator';
 
 const FONT = '"Space Grotesk", "Inter", "Helvetica Neue", Arial, sans-serif';
@@ -26,8 +27,13 @@ function luminance(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+export function contrast(a, b) {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
 // Texto oscuro sobre fondos medios y claros (contraste mínimo 4,5:1 con negro desde L = 0,18).
-const onColor = hex => (luminance(hex) > 0.18 ? '#0A0E1A' : '#F6F1E7');
+export const onColor = hex => (luminance(hex) > 0.18 ? '#0A0E1A' : '#F6F1E7');
 
 export function paletteFor(layout, accent, bg) {
   if (layout.theme === 'accent') {
@@ -38,34 +44,73 @@ export function paletteFor(layout, accent, bg) {
   return { bg, fg: onColor(bg), mark: accent, pillBg: accent, pillFg: onColor(accent) };
 }
 
-// Ajusta el tamaño de letra del titular hasta que entre en `maxLines`.
-function fitHeadline(ctx, text, maxWidth, maxLines, start, min) {
-  for (let size = start; size >= min; size -= 4) {
-    ctx.font = `700 ${size}px ${FONT}`;
-    const ls = wrapLines(w => ctx.measureText(w).width, text, maxWidth);
-    if (ls.length <= maxLines) return { size, ls };
-  }
-  ctx.font = `700 ${min}px ${FONT}`;
-  return { size: min, ls: wrapLines(w => ctx.measureText(w).width, text, maxWidth).slice(0, maxLines) };
+// Color de los bloques / marcadores de las plantillas atrevidas y su texto.
+export function blockPalette(layout, accent, bg) {
+  const pal = paletteFor(layout, accent, bg);
+  const block = layout.theme === 'accent' ? pal.fg : accent;
+  return { block, onBlock: onColor(block) };
 }
 
-export function renderAd(canvas, { layout, name, accent, bg, format = 'post' }) {
-  const { w, h } = FORMATS[format] || FORMATS.post;
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  const pal = paletteFor(layout, accent, bg);
-  const pad = 96;
-  // En historias, la interfaz tapa ~250 px arriba y ~340 px abajo.
-  const top = format === 'historia' ? 260 : 110;
-  const bottom = h - (format === 'historia' ? 360 : 110);
-  const maxW = w - pad * 2;
+const measureWith = ctx => t => ctx.measureText(t).width;
 
-  ctx.fillStyle = pal.bg;
-  ctx.fillRect(0, 0, w, h);
-  ctx.textBaseline = 'alphabetic';
+// Ajusta el tamaño de letra del titular hasta que entre en `maxLines`, que ninguna
+// palabra se pase del ancho y (si se da `maxHeight`) que el bloque entre en alto.
+function fitHeadline(ctx, text, maxWidth, maxLines, start, min, weight = 700, step = 4, { maxHeight = Infinity, lh = 1.12 } = {}) {
+  const attempt = size => {
+    ctx.font = `${weight} ${size}px ${FONT}`;
+    const ls = wrapLines(measureWith(ctx), text, maxWidth);
+    const widest = Math.max(0, ...ls.map(l => ctx.measureText(l).width));
+    return { size, ls, ok: ls.length <= maxLines && widest <= maxWidth && ls.length * size * lh <= maxHeight };
+  };
+  for (let size = start; size >= min; size -= step) {
+    const r = attempt(size);
+    if (r.ok) return r;
+  }
+  // Último recurso: bajar de a poco por debajo del mínimo hasta que no se pase del ancho.
+  for (let size = min - 2; size >= 32; size -= 2) {
+    const r = attempt(size);
+    if (r.ok) return r;
+  }
+  const r = attempt(min);
+  return { size: min, ls: r.ls.slice(0, maxLines) };
+}
 
-  // Marca: puntito de acento + nombre.
+// Puntos que entran completos en `maxLines` líneas (nunca se corta una frase a la mitad).
+function wholeBullets(ctx, bullets, maxWidth, maxLines = 2, limit = 4) {
+  return bullets
+    .map(b => wrapLines(measureWith(ctx), b, maxWidth))
+    .filter(ls => ls.length <= maxLines)
+    .slice(0, limit);
+}
+
+// Dibuja líneas de texto una debajo de otra; devuelve la próxima y.
+function drawLines(ctx, lines, x, y, lineH, align = 'left') {
+  ctx.textAlign = align;
+  for (const l of lines) { ctx.fillText(l, x, y); y += lineH; }
+  ctx.textAlign = 'left';
+  return y;
+}
+
+function pill(ctx, text, x, y, { bg, fg, maxW, size = 40, h = 100, center = false }) {
+  ctx.font = `700 ${size}px ${FONT}`;
+  const tw = ctx.measureText(text).width;
+  const pw = Math.min(maxW, tw + 96);
+  const px = center ? x - pw / 2 : x;
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.roundRect(px, y, pw, h, h / 2);
+  ctx.fill();
+  ctx.fillStyle = fg;
+  ctx.fillText(text, px + (pw - tw) / 2, y + h * 0.64);
+  return pw;
+}
+
+// ── Plantillas ─────────────────────────────────────────────────────────────
+// c = { ctx, layout, pal, bp, name, w, h, pad, top, bottom, maxW }
+
+// Estándar: marca arriba, titular a la izquierda, bajada, puntos y botón abajo.
+function clasica(c) {
+  const { ctx, layout, pal, name, w, h, pad, top, bottom, maxW } = c;
   ctx.fillStyle = pal.mark;
   ctx.beginPath();
   ctx.arc(pad + 14, top + 14, 14, 0, Math.PI * 2);
@@ -74,44 +119,33 @@ export function renderAd(canvas, { layout, name, accent, bg, format = 'post' }) 
   ctx.font = `600 38px ${FONT}`;
   ctx.fillText(name, pad + 46, top + 28);
 
-  // CTA abajo (se dibuja primero para saber cuánto espacio queda).
   let ctaTop = bottom;
   if (layout.cta) {
-    ctx.font = `700 40px ${FONT}`;
-    const tw = ctx.measureText(layout.cta).width;
-    const pw = Math.min(maxW, tw + 96);
-    const ph = 100;
-    ctaTop = bottom - ph;
-    ctx.fillStyle = pal.pillBg;
-    ctx.beginPath();
-    ctx.roundRect(pad, ctaTop, pw, ph, 50);
-    ctx.fill();
-    ctx.fillStyle = pal.pillFg;
-    ctx.fillText(layout.cta, pad + (pw - tw) / 2, ctaTop + 64);
+    ctaTop = bottom - 100;
+    pill(ctx, layout.cta, pad, ctaTop, { bg: pal.pillBg, fg: pal.pillFg, maxW });
   }
 
-  // Titular, bajada y puntos en el espacio del medio.
-  const hasBullets = layout.bullets.length > 0;
-  const { size, ls } = fitHeadline(ctx, layout.headline, maxW, format === 'historia' ? 7 : 6, format === 'historia' ? 104 : 96, 52);
+  const tall = h > 1500;
+  const { size, ls } = fitHeadline(ctx, layout.headline, maxW, tall ? 7 : 6, tall ? 104 : 96, 52);
   const lineH = Math.round(size * 1.12);
   let y = top + 150 + size;
   ctx.fillStyle = pal.fg;
   ctx.font = `700 ${size}px ${FONT}`;
-  for (const l of ls) { ctx.fillText(l, pad, y); y += lineH; }
+  y = drawLines(ctx, ls, pad, y, lineH);
 
   if (layout.sub) {
     y += 8;
     ctx.font = `400 42px ${FONT}`;
     ctx.globalAlpha = 0.9;
-    for (const l of wrapLines(t => ctx.measureText(t).width, layout.sub, maxW).slice(0, 3)) { ctx.fillText(l, pad, y + 30); y += 56; }
+    for (const l of wrapLines(measureWith(ctx), layout.sub, maxW).slice(0, 3)) { ctx.fillText(l, pad, y + 30); y += 56; }
     ctx.globalAlpha = 1;
   }
 
-  if (hasBullets) {
+  if (layout.bullets.length) {
     y += 48;
     ctx.font = `500 40px ${FONT}`;
     for (const b of layout.bullets) {
-      const bl = wrapLines(t => ctx.measureText(t).width, b, maxW - 56).slice(0, 2);
+      const bl = wrapLines(measureWith(ctx), b, maxW - 56).slice(0, 2);
       if (y + bl.length * 52 > ctaTop - 40) break;
       ctx.fillStyle = pal.mark;
       ctx.beginPath();
@@ -122,6 +156,280 @@ export function renderAd(canvas, { layout, name, accent, bg, format = 'post' }) 
       y += 22;
     }
   }
+}
+
+// Relajada: todo centrado, mucho aire, letra liviana y el llamado como texto.
+function aireada(c) {
+  const { ctx, layout, pal, name, w, top, bottom, maxW } = c;
+  const cx = w / 2;
+  ctx.fillStyle = pal.fg;
+  ctx.globalAlpha = 0.75;
+  ctx.font = `500 30px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.fillText(name.toUpperCase().split('').join(' '), cx, top + 30);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+
+  // Se arma de abajo hacia arriba para centrar el bloque en el espacio libre.
+  const innerW = maxW - 80;
+  const { size, ls } = fitHeadline(ctx, layout.headline, innerW, 5, 84, 48, 500);
+  const lineH = Math.round(size * 1.25);
+  const subLines = layout.sub ? (ctx.font = `400 40px ${FONT}`, wrapLines(measureWith(ctx), layout.sub, innerW).slice(0, 3)) : [];
+  ctx.font = `500 36px ${FONT}`;
+  const bullets = wholeBullets(ctx, layout.bullets, innerW, 2, 2);
+  const bulletLines = bullets.reduce((n, ls) => n + ls.length, 0);
+  const blockH = 24 + size + (ls.length - 1) * lineH + (subLines.length ? 56 + subLines.length * 54 : 0) + (bullets.length ? 36 + bulletLines * 48 + (bullets.length - 1) * 16 : 0);
+  const ctaH = layout.cta ? 130 : 0;
+  const free = bottom - (top + 90) - ctaH;
+  let y = top + 90 + Math.max(0, (free - blockH) / 2);
+
+  ctx.fillStyle = pal.mark;
+  ctx.fillRect(cx - 40, y, 80, 5);
+  y += 24 + size;
+  ctx.fillStyle = pal.fg;
+  ctx.font = `500 ${size}px ${FONT}`;
+  y = drawLines(ctx, ls, cx, y, lineH, 'center') - lineH;
+  if (subLines.length) {
+    ctx.font = `400 40px ${FONT}`;
+    ctx.globalAlpha = 0.8;
+    y = drawLines(ctx, subLines, cx, y + 80, 54, 'center') - 54;
+    ctx.globalAlpha = 1;
+  }
+  if (bullets.length) {
+    ctx.font = `500 36px ${FONT}`;
+    ctx.globalAlpha = 0.9;
+    y += 24;
+    for (const bl of bullets) {
+      y = drawLines(ctx, bl, cx, y + 48, 48, 'center') - 48 + 16;
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (layout.cta) {
+    ctx.font = `600 40px ${FONT}`;
+    const t = `${layout.cta} →`;
+    const tw = Math.min(ctx.measureText(t).width, maxW);
+    ctx.fillStyle = contrast(pal.mark, pal.bg) >= 4.5 ? pal.mark : pal.fg;
+    ctx.textAlign = 'center';
+    ctx.fillText(t, cx, bottom - 40, maxW);
+    ctx.fillStyle = pal.mark;
+    ctx.fillRect(cx - tw / 2, bottom - 22, tw, 4);
+    ctx.textAlign = 'left';
+  }
+}
+
+// Relajada: poco texto, titular abajo a la izquierda y un círculo suave de fondo.
+function minimal(c) {
+  const { ctx, layout, pal, name, w, h, pad, top, bottom, maxW } = c;
+  ctx.fillStyle = pal.mark;
+  ctx.globalAlpha = 0.16;
+  ctx.beginPath();
+  ctx.arc(w - 120, top + (bottom - top) * 0.32, w * 0.42, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = pal.fg;
+  ctx.font = `600 34px ${FONT}`;
+  ctx.fillText(name, pad, top + 30);
+  ctx.fillStyle = pal.mark;
+  ctx.fillRect(pad, top + 52, 56, 5);
+
+  let ctaTop = bottom;
+  if (layout.cta) {
+    ctx.font = `600 38px ${FONT}`;
+    const tw = ctx.measureText(layout.cta).width;
+    const pw = Math.min(maxW, tw + 80);
+    ctaTop = bottom - 84;
+    ctx.strokeStyle = pal.fg;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(pad, ctaTop, pw, 84, 42);
+    ctx.stroke();
+    ctx.fillStyle = pal.fg;
+    ctx.fillText(layout.cta, pad + (pw - tw) / 2, ctaTop + 54);
+  }
+
+  const sub = layout.sub ? (ctx.font = `400 40px ${FONT}`, wrapLines(measureWith(ctx), layout.sub, maxW).slice(0, 2)) : [];
+  const { size, ls } = fitHeadline(ctx, layout.headline, maxW, 5, h > 1500 ? 100 : 92, 52, 600);
+  const lineH = Math.round(size * 1.15);
+  const blockH = ls.length * lineH + (sub.length ? 24 + sub.length * 54 : 0);
+  let y = ctaTop - 100 - blockH + size;
+  ctx.fillStyle = pal.fg;
+  ctx.font = `600 ${size}px ${FONT}`;
+  y = drawLines(ctx, ls, pad, y, lineH);
+  if (sub.length) {
+    ctx.font = `400 40px ${FONT}`;
+    ctx.globalAlpha = 0.8;
+    drawLines(ctx, sub, pad, y + 14, 54);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// Alocada: titular en mayúsculas que ocupa todo el ancho, franja y sticker inclinado.
+function cartel(c) {
+  const { ctx, layout, pal, name, w, pad, top, bottom, maxW } = c;
+  ctx.fillStyle = pal.mark;
+  ctx.fillRect(0, 0, w, 36);
+
+  ctx.fillStyle = pal.fg;
+  ctx.font = `800 36px ${FONT}`;
+  ctx.fillText(name.toUpperCase(), pad, top + 20);
+
+  const text = layout.headline.toUpperCase();
+  const room = bottom - (layout.cta ? 120 : 0) - (top + 70) - (layout.sub ? 150 : 40);
+  const { size, ls } = fitHeadline(ctx, text, maxW, 6, 168, 64, 800, 6, { maxHeight: room, lh: 0.96 });
+  const lineH = Math.round(size * 0.96);
+  let y = top + 70 + size;
+  ctx.font = `800 ${size}px ${FONT}`;
+  ls.forEach((l, i) => {
+    ctx.fillStyle = i === ls.length - 1 && ls.length > 1 && contrast(pal.mark, pal.bg) >= 3 ? pal.mark : pal.fg;
+    ctx.fillText(l, pad, y);
+    y += lineH;
+  });
+
+  ctx.fillStyle = pal.fg;
+  let ctaTop = bottom;
+  if (layout.cta) ctaTop = bottom - 120;
+  if (layout.sub) {
+    ctx.font = `600 44px ${FONT}`;
+    for (const l of wrapLines(measureWith(ctx), layout.sub, maxW).slice(0, 2)) {
+      if (y + 20 > ctaTop - 150) break;
+      ctx.fillText(l, pad, y + 24);
+      y += 58;
+    }
+  }
+  ctx.font = `600 38px ${FONT}`;
+  for (const bl of wholeBullets(ctx, layout.bullets, maxW - 60, 2, 2)) {
+    if (y + 40 + bl.length * 46 > ctaTop - 30) break;
+    y += 16;
+    ctx.fillStyle = contrast(pal.mark, pal.bg) >= 3 ? pal.mark : pal.fg;
+    ctx.fillText('→', pad, y + 40);
+    ctx.fillStyle = pal.fg;
+    y = drawLines(ctx, bl, pad + 60, y + 40, 46) - 46 + 12;
+  }
+
+  if (layout.cta) {
+    ctx.save();
+    ctx.translate(pad + 10, ctaTop + 60);
+    ctx.rotate(-0.06);
+    ctx.fillStyle = pal.pillBg;
+    ctx.font = `800 44px ${FONT}`;
+    const t = layout.cta.toUpperCase();
+    const tw = Math.min(ctx.measureText(t).width, maxW - 80);
+    ctx.beginPath();
+    ctx.roundRect(0, -64, tw + 80, 120, 14);
+    ctx.fill();
+    ctx.fillStyle = pal.pillFg;
+    ctx.fillText(t, 40, 10, tw);
+    ctx.restore();
+  }
+}
+
+// Alocada: arriba un bloque de color con el titular y un corte en diagonal.
+function bloques(c) {
+  const { ctx, layout, pal, bp, name, w, h, pad, top, bottom, maxW } = c;
+  const blockH = Math.round((bottom - top) * 0.55) + top;
+  ctx.fillStyle = bp.block;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(w, 0);
+  ctx.lineTo(w, blockH - 90);
+  ctx.lineTo(0, blockH + 90);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = bp.onBlock;
+  ctx.font = `700 34px ${FONT}`;
+  ctx.fillText(name, pad, top + 24);
+  const { size, ls } = fitHeadline(ctx, layout.headline, maxW, 5, h > 1500 ? 108 : 100, 54, 800);
+  const lineH = Math.round(size * 1.06);
+  ctx.font = `800 ${size}px ${FONT}`;
+  drawLines(ctx, ls, pad, top + 96 + size, lineH);
+
+  let y = blockH + 150;
+  ctx.fillStyle = pal.fg;
+  if (layout.sub) {
+    ctx.font = `500 42px ${FONT}`;
+    for (const l of wrapLines(measureWith(ctx), layout.sub, maxW).slice(0, 2)) { ctx.fillText(l, pad, y); y += 56; }
+  }
+  const ctaTop = layout.cta ? bottom - 100 : bottom;
+  ctx.font = `500 38px ${FONT}`;
+  for (const bl of wholeBullets(ctx, layout.bullets, maxW - 50, 2, 2)) {
+    if (y + bl.length * 46 > ctaTop - 30) break;
+    y += 14;
+    ctx.fillStyle = contrast(pal.mark, pal.bg) >= 3 ? pal.mark : pal.fg;
+    ctx.fillRect(pad, y - 22, 22, 22);
+    ctx.fillStyle = pal.fg;
+    y = drawLines(ctx, bl, pad + 50, y, 46) - 46 + 44;
+  }
+  if (layout.cta) pill(ctx, layout.cta, pad, ctaTop, { bg: pal.pillBg, fg: pal.pillFg, maxW });
+}
+
+// Alocada: titular inclinado, cada línea sobre un marcador de color.
+function diagonal(c) {
+  const { ctx, layout, pal, bp, name, w, h, pad, top, bottom, maxW } = c;
+  ctx.fillStyle = pal.fg;
+  ctx.font = `700 34px ${FONT}`;
+  ctx.fillText(name, pad, top + 24);
+  ctx.fillStyle = pal.mark;
+  ctx.beginPath();
+  ctx.arc(w - pad - 30, top + 12, 30, 0, Math.PI * 2);
+  ctx.fill();
+
+  const inner = maxW - 40;
+  const text = layout.headline.toUpperCase();
+  const { size, ls } = fitHeadline(ctx, text, inner, 5, h > 1500 ? 120 : 108, 56, 800, 6);
+  const lineH = Math.round(size * 1.28);
+  const ctaH = layout.cta ? 130 : 0;
+  const space = bottom - ctaH - (top + 90);
+  const blockH = ls.length * lineH;
+  const startY = top + 110 + Math.max(0, (space - blockH - 140) / 2);
+
+  ctx.save();
+  ctx.translate(pad, startY);
+  ctx.rotate(-0.07);
+  ctx.font = `800 ${size}px ${FONT}`;
+  ls.forEach((l, i) => {
+    const tw = ctx.measureText(l).width;
+    ctx.fillStyle = bp.block;
+    ctx.fillRect(-14, i * lineH, tw + 40, lineH - 8);
+    ctx.fillStyle = bp.onBlock;
+    ctx.fillText(l, 6, i * lineH + size * 0.98);
+  });
+  ctx.restore();
+
+  let y = startY + blockH + 90;
+  ctx.fillStyle = pal.fg;
+  if (layout.sub) {
+    ctx.font = `500 42px ${FONT}`;
+    for (const l of wrapLines(measureWith(ctx), layout.sub, maxW).slice(0, 2)) {
+      if (y > bottom - ctaH - 40) break;
+      ctx.fillText(l, pad, y);
+      y += 56;
+    }
+  }
+  if (layout.cta) pill(ctx, layout.cta, pad, bottom - 100, { bg: pal.pillBg, fg: pal.pillFg, maxW });
+}
+
+export const TEMPLATE_DRAW = { clasica, aireada, minimal, cartel, bloques, diagonal };
+
+export function renderAd(canvas, { layout, name, accent, bg, format = 'post' }) {
+  const { w, h } = FORMATS[format] || FORMATS.post;
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const pal = paletteFor(layout, accent, bg);
+  const bp = blockPalette(layout, accent, bg);
+  const pad = 96;
+  // En historias, la interfaz tapa ~250 px arriba y ~340 px abajo.
+  const top = format === 'historia' ? 260 : 110;
+  const bottom = h - (format === 'historia' ? 360 : 110);
+
+  ctx.fillStyle = pal.bg;
+  ctx.fillRect(0, 0, w, h);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  const draw = TEMPLATE_DRAW[layout.tpl] || clasica;
+  draw({ ctx, layout, pal, bp, name, w, h, pad, top, bottom, maxW: w - pad * 2 });
 }
 
 export function canvasToBlob(canvas) {

@@ -177,11 +177,13 @@ export function memoryStore({ products = [KEELWISE, PLANTILLA], users = {}, cloc
     },
     async crmGetProduct(slug) { return clone(db.crmProducts.get(slug)) },
     async crmUpsertProduct(row) { db.crmProducts.set(row.slug, { ...(db.crmProducts.get(row.slug) || {}), ...row }) },
+    async crmUpdateProduct(slug, patch) { const p = db.crmProducts.get(slug); if (p) Object.assign(p, patch) },
     async crmInsertLog(row) { db.crmLog.push({ id: db.crmLog.length + 1, at: clock().toISOString(), ...row }) },
     async crmDeleteLog(id) { db.crmLog = db.crmLog.filter(l => l.id !== id) },
     async crmInsertCreative(row) {
       const id = db.crmCreatives.reduce((m, c) => Math.max(m, c.id), 0) + 1
       db.crmCreatives.push({ id, created_at: clock().toISOString(), ...row })
+      return id
     },
     async crmUpdateCreative(id, row) {
       const c = db.crmCreatives.find(x => x.id === id)

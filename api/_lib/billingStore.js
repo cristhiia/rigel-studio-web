@@ -127,6 +127,10 @@ export async function createSupabaseStore({ url, serviceRoleKey }) {
       const { error } = await client.from('crm_products').upsert(row, { onConflict: 'slug' })
       if (error) fail('crmUpsertProduct', error)
     },
+    async crmUpdateProduct(slug, patch) {
+      const { error } = await client.from('crm_products').update(patch).eq('slug', slug)
+      if (error) fail('crmUpdateProduct', error)
+    },
     async crmInsertLog(row) {
       const { error } = await client.from('crm_log').insert(row)
       if (error) fail('crmInsertLog', error)
@@ -136,8 +140,9 @@ export async function createSupabaseStore({ url, serviceRoleKey }) {
       if (error) fail('crmDeleteLog', error)
     },
     async crmInsertCreative(row) {
-      const { error } = await client.from('crm_creatives').insert(row)
+      const { data, error } = await client.from('crm_creatives').insert(row).select('id').single()
       if (error) fail('crmInsertCreative', error)
+      return data.id
     },
     async crmUpdateCreative(id, row) {
       const { error } = await client.from('crm_creatives').update(row).eq('id', id)

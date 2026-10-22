@@ -73,3 +73,34 @@ export function Notice({ kind = 'info', children }) {
     </p>
   );
 }
+
+// Tick verde / rojo para calificar el diseño de una pieza. Tocar el que ya está
+// marcado lo saca. `onTick` recibe 'verde', 'rojo' o '' (sin tick).
+export function TickButtons({ value, onTick, disabled = false }) {
+  const opt = (tick, label, symbol, color) => {
+    const on = value === tick;
+    return (
+      <button
+        type="button"
+        aria-pressed={on}
+        aria-label={label}
+        title={label}
+        disabled={disabled}
+        onClick={() => onTick(on ? '' : tick)}
+        style={{
+          minHeight: 44, minWidth: 52, padding: '8px 14px', borderRadius: 100, fontSize: '1.2rem', lineHeight: 1,
+          fontFamily: DISPLAY, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1,
+          background: on ? color : 'transparent', color: on ? '#0A0E1A' : color, border: `2px solid ${color}`,
+        }}
+      >
+        {symbol}
+      </button>
+    );
+  };
+  return (
+    <span role="group" aria-label="Calificar el diseño" style={{ display: 'inline-flex', gap: 8 }}>
+      {opt('verde', 'Me gusta este diseño', '✓', '#7DD3A8')}
+      {opt('rojo', 'No me gusta este diseño', '✗', '#F28B82')}
+    </span>
+  );
+}

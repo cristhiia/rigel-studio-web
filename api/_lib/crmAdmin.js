@@ -17,6 +17,10 @@ export const VERDICTS = new Set(['funciono', 'no_funciono'])
 export const METRICS = ['reach', 'views', 'likes', 'comments', 'saves', 'shares', 'clicks', 'conversions']
 
 export const THEMES = new Set(['dark', 'accent', 'light'])
+// Rasgos de diseño de cada pieza (los usa el aprendizaje de estilos).
+export const TEMPLATES = new Set(['clasica', 'aireada', 'minimal', 'cartel', 'bloques', 'diagonal'])
+export const VIBES = new Set(['relajada', 'estandar', 'alocada'])
+export const TICKS = new Set(['verde', 'rojo'])
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,39}$/
 const METRIC_MAX = 1_000_000_000
@@ -82,6 +86,9 @@ export function cleanLayout(raw) {
     bullets: bullets.map(b => cleanText(b, 90, 'Punto', { required: true })),
     cta: cleanText(raw.cta, 80, 'Llamado a la acción'),
     theme: oneOf(raw.theme, THEMES, 'Tema', 'dark'),
+    tpl: oneOf(raw.tpl, TEMPLATES, 'Plantilla', 'clasica'),
+    vibe: oneOf(raw.vibe, VIBES, 'Estilo', 'estandar'),
+    angle: raw.angle === undefined || raw.angle === null || raw.angle === '' ? '' : (typeof raw.angle === 'string' && /^[a-z-]{1,20}$/.test(raw.angle) ? raw.angle : fail('Ángulo inválido')),
   }
 }
 
@@ -171,6 +178,7 @@ export function parseCreative(body) {
     platform: oneOf(body.platform, PLATFORMS, 'Red', 'instagram'),
     published_on: cleanDate(body.published_on, 'Fecha de publicación'),
     verdict: oneOf(body.verdict, VERDICTS, 'Veredicto', null),
+    tick: oneOf(body.tick, TICKS, 'Tick', null),
     learnings: cleanText(body.learnings, 1000, 'Aprendizajes', { multiline: true }),
     layout: cleanLayout(body.layout),
     prompt: cleanText(body.prompt, 4000, 'El prompt', { multiline: true }),
@@ -210,8 +218,21 @@ const ACTIONS = {
     const row = parseCreative(body)
     await requireProduct(ctx.store, row.product_slug)
     const stamped = { ...row, updated_at: ctx.now.toISOString() }
-    if (body.id === undefined || body.id === null) await ctx.store.crmInsertCreative(stamped)
-    else await ctx.store.crmUpdateCreative(idOf(body.id), stamped)
+    if (body.id === undefined || body.id === null) return { ok: true, id: await ctx.store.crmInsertCreative(stamped) }
+    await ctx.store.crmUpdateCreative(idOf(body.id), stamped)
+    return { ok: true, id: idOf(body.id) }
+  },
+  // Cambia solo el tick (verde / rojo / sin tick) sin tocar el resto de la pieza.
+  async creative_tick(ctx, body) {
+    await ctx.store.crmUpdateCreative(idOf(body.id), { tick: oneOf(body.tick, TICKS, 'Tick', null), updated_at: ctx.now.toISOString() })
+    return { ok: true }
+  },
+  // Reinicia lo aprendido: el generador ignora las piezas anteriores a este momento.
+  async learning_reset(ctx, body) {
+    const slug = typeof body.product === 'string' ? body.product : ''
+    if (!SLUG_RE.test(slug)) fail('Producto inválido')
+    await requireProduct(ctx.store, slug)
+    await ctx.store.crmUpdateProduct(slug, { learning_since: ctx.now.toISOString() })
     return { ok: true }
   },
   async creative_delete(ctx, body) {

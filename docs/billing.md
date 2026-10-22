@@ -376,3 +376,11 @@ imágenes en un canvas). Solo usa los textos del brief de la ficha (público, do
 acción, colores): no inventa funciones, precios ni testimonios. Post (1080×1350) e Historia (1080×1920, con márgenes
 seguros) salen como PNG; Video sale como un prompt para Claude Code que produce el motion graphics. Las piezas se pueden
 guardar en `crm_creatives` (`layout` y `prompt` permiten volver a descargarlas más tarde).
+
+## Generador con 3 variantes y aprendizaje de estilos
+
+- Cada idea sale en 3 variantes (relajada, estándar al medio, alocada) con el mismo texto del brief y distinta plantilla (`clasica`, `aireada`, `minimal`, `cartel`, `bloques`, `diagonal`) y fondo.
+- Cada pieza se califica con tick verde/rojo (`crm_creatives.tick`). Los rasgos (plantilla, fondo, ángulo) suman o restan puntos según el tick, el veredicto "funcionó / no funcionó" y el alcance contra la mediana de piezas publicadas del mismo producto y tipo (`src/lib/adLearning.js`). Sin IA ni costo por uso.
+- Una pieza exacta con puntaje total ≤ -1 no se vuelve a proponer. Con un estilo claramente preferido, la variante estándar pasa a usarlo.
+- El aprendizaje es por producto y por tipo (post, historia, video). `crm_products.learning_since` permite reiniciarlo sin borrar piezas.
+- API: `creative_save` (devuelve `id`, acepta `tick`), `creative_tick`, `learning_reset`.
