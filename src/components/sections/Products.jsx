@@ -36,11 +36,11 @@ export default function Products() {
           Productos
         </h2>
         <p className="font-body text-base mt-4 max-w-xl mx-auto" style={{ color: 'rgba(240,231,213,0.85)', lineHeight: 1.6 }}>
-          Además de construir a medida, hacemos productos propios. Estos son los que ya podés usar o esperar.
+          Software simple para problemas concretos: cada producto resuelve una sola cosa, y la resuelve bien. Estos son los que ya podés usar o esperar.
         </p>
       </div>
 
-      <div className="max-w-5xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {products.map((p, i) => (
           <motion.article
             key={p.id}

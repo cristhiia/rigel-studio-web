@@ -22,17 +22,17 @@ gsap.registerPlugin(ScrollTrigger);
 
 const NAV_DESKTOP = [
   ['Inicio',    '#inicio'],
-  ['Nosotros',  '#filosofia'],
-  ['Servicios', '#casos'],
   ['Productos', '#productos'],
+  ['Nosotros',  '#filosofia'],
+  ['A medida',  '#casos'],
   ['Contacto',  '#contacto'],
 ];
 
 const NAV_MOBILE = [
   ['Inicio',               '#inicio'],
-  ['Nosotros',             '#filosofia'],
-  ['Servicios',            '#casos'],
   ['Productos',            '#productos'],
+  ['Nosotros',             '#filosofia'],
+  ['A medida',             '#casos'],
   ['Contacto',             '#contacto'],
   ['Tecnologías',          '#tecnologias'],
   ['Preguntas frecuentes', '#faq'],
@@ -291,7 +291,7 @@ export default function Layout() {
             ))}
           </div>
           <a href="#contacto" className="nav-cta-btn hidden md:inline-block">
-            Iniciar Proyecto
+            Hablemos
           </a>
         </nav>
 
@@ -452,16 +452,16 @@ export default function Layout() {
           <Hero isScrolled={isScrolled} />
         </section>
 
+        <section id="productos" className="fade-section w-full relative" style={{ zIndex: 10 }}>
+          <Products />
+        </section>
+
         <section id="filosofia" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
           <Philosophy />
         </section>
 
         <section id="casos" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
           <Cases onSelectCase={setSelectedCase} />
-        </section>
-
-        <section id="productos" className="fade-section w-full relative" style={{ zIndex: 10 }}>
-          <Products />
         </section>
 
         <section id="planes" className="fade-section w-full relative" style={{ zIndex: 10 }}>

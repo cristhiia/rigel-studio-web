@@ -26,13 +26,13 @@ export default function Philosophy() {
           style={{ color: 'rgba(240,231,213,0.85)' }}
         >
           <p>
-            "En un mundo saturado de soluciones genéricas y datos expuestos, Rigel Studio nació bajo una premisa innegociable: la tecnología debe ser tan privada como efectiva."
+            "Rigel Studio nació bajo una premisa innegociable: la tecnología debe ser tan privada como efectiva."
           </p>
           <p>
-            No construimos herramientas para el mercado masivo. Diseñamos estructuras para quienes entienden que el software es el activo más crítico de su negocio. No escribimos código para impresionar. Buscamos lo que nadie más busca por vos: que funcione, de verdad, para tu negocio.
+            Rigel es una de las estrellas que se usan para navegar. Keelwise lleva en el nombre la quilla de un barco. No es casualidad: hacemos software para que sepas dónde estás y hacia dónde ir.
           </p>
           <p>
-            Nuestra misión no es simplemente resolver problemas, sino crear sistemas que respiren con la identidad de quien los posee. Con absoluta discreción, con total precisión.
+            Hacemos software simple para problemas concretos. Cada producto resuelve una sola cosa, la resuelve bien y no te llena de ruido: menos pantallas, menos números sueltos, más control sobre lo que importa. Y si lo que necesitás no existe, lo armamos a medida.
           </p>
         </article>
 

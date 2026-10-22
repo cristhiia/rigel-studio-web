@@ -35,18 +35,20 @@ export default function Hero({ isScrolled }) {
         </h2>
       </div>
 
-      {/* ── hero-tagline ── */}
-      <p
-        className="hero-tagline font-display font-medium text-base md:text-lg tracking-[0.2em] uppercase mt-8"
-        style={{ color: '#F0E7D5' }}
-      >
-        Entendemos antes de construir.
-      </p>
+      {/* ── hero-tagline: eslogan + bajada ── */}
+      <div className="hero-tagline text-base md:text-xl text-center mt-8" style={{ color: '#F0E7D5' }}>
+        <p className="font-display font-medium uppercase" style={{ margin: 0, fontSize: '1em', letterSpacing: '0.2em' }}>
+          Menos ruido. Más control.
+        </p>
+        <p className="font-body" style={{ margin: '14px 0 0', fontSize: '0.72em', letterSpacing: '0.02em', opacity: 0.85 }}>
+          Software simple para problemas concretos.
+        </p>
+      </div>
 
       {/* ── hero CTA ── */}
       <button
         className="hero-cta font-body"
-        onClick={() => document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' })}
+        onClick={() => document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth' })}
         style={{
           background: '#D4AF37',
           color: '#0A0E1A',
@@ -70,7 +72,25 @@ export default function Hero({ isScrolled }) {
           e.currentTarget.style.transform = 'scale(1)';
         }}
       >
-        Iniciá tu proyecto ✦
+        Ver productos ✦
+      </button>
+      <button
+        type="button"
+        className="hero-cta font-body"
+        onClick={() => document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' })}
+        style={{
+          background: 'transparent',
+          color: 'rgba(240,231,213,0.85)',
+          border: 'none',
+          fontSize: '0.9rem',
+          textDecoration: 'underline',
+          textUnderlineOffset: 4,
+          cursor: 'pointer',
+          marginTop: 18,
+          padding: 8,
+        }}
+      >
+        ¿Necesitás algo a medida?
       </button>
 
       {/* ── scroll-indicator ── */}

@@ -34,17 +34,31 @@ export const products = [
     cta: { label: 'Conocer Keelwise', href: '/keelwise' },
   },
   {
-    id: 'gestor-pacientes',
-    name: 'Gestor de pacientes',
+    id: 'kioscopro',
+    name: 'KioscoPro',
+    category: 'Comercio · Kioscos y maxikioscos',
+    status: 'soon',
+    statusLabel: 'Próximamente',
+    description:
+      'Caja, stock y precios para kioscos y maxikioscos, en un solo lugar. Lo estamos terminando: dejanos tu WhatsApp y te avisamos cuando salga.',
+    meta: null,
+    cta: {
+      label: 'Avisame cuando salga',
+      href: whatsappLink('Hola, quiero que me avisen cuando salga KioscoPro'),
+    },
+  },
+  {
+    id: 'gestionpro',
+    name: 'GestiónPro',
     category: 'Salud · Consultorios',
     status: 'soon',
     statusLabel: 'Próximamente',
     description:
-      'Un sistema para ordenar los pacientes de tu consultorio. Lo estamos construyendo: dejanos tu WhatsApp y te avisamos cuando salga.',
+      'Pacientes, turnos y cobros en un solo lugar, para psicólogos, médicos y nutricionistas. Lo estamos construyendo: dejanos tu WhatsApp y te avisamos cuando salga.',
     meta: null,
     cta: {
       label: 'Avisame cuando salga',
-      href: whatsappLink('Hola, quiero que me avisen cuando salga el Gestor de pacientes'),
+      href: whatsappLink('Hola, quiero que me avisen cuando salga GestiónPro'),
     },
   },
 ];
