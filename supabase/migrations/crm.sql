@@ -97,3 +97,14 @@ alter table public.crm_products  add column if not exists learning_since timesta
 -- ('nautico' = brújula, ancla, velero, plano y arco luminoso, para Keelwise).
 alter table public.crm_products add column if not exists motif text not null default '' check (motif in ('', 'nautico'));
 update public.crm_products set motif = 'nautico' where slug = 'keelwise' and motif = '';
+
+-- ── Mapa de dolor (creador de posts) ──────────────────────────────────────
+-- Por producto: tipos de cliente (para quién, dolor, promesa, prueba, objeción
+-- y respuesta) y tres textos de marca (lo que discutís, tu historia, la cuenta).
+-- El generador arma conceptos distintos combinando cliente × tipo de mensaje.
+-- La forma la valida la API (cleanPainMap); acá solo se acota tipo y tamaño.
+alter table public.crm_products add column if not exists pain_map jsonb not null default '{}'::jsonb;
+do $$ begin
+  alter table public.crm_products add constraint crm_products_pain_map_shape
+    check (jsonb_typeof(pain_map) = 'object' and octet_length(pain_map::text) <= 12000);
+exception when duplicate_object then null; end $$;

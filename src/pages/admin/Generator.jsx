@@ -10,9 +10,10 @@ import { CREAM, CREAM_85, DISPLAY, GOLD } from '../../components/ui/pageStyles';
 import { Badge, Btn, Card, Field, Notice, TickButtons, inputStyle } from './adminUi';
 import { LINE } from './AdminShell';
 
-// Generador: elegís producto, tipo y cantidad de ideas y arma cada una en 3 variantes
-// (relajada, estándar al medio y alocada) a partir del brief del producto, sin costo
-// por uso y sin conexión a redes.
+// Creador de posts: elegís producto, tipo y cantidad de ideas. Cada idea es un concepto
+// distinto (a qué cliente le habla × qué tipo de mensaje usa, sacado del mapa de dolor)
+// y sale en 3 versiones de diseño (relajada, estándar al medio y alocada), con el texto
+// del posteo, los hashtags y un prompt para Claude. Sin costo por uso ni conexión a redes.
 //  · Post / Historia → imagen PNG lista para descargar.
 //  · Video → prompt para pegar en Claude Code y producir el motion graphics.
 // Con ✓ / ✗ calificás el diseño; eso se guarda en el CRM y el generador aprende.
@@ -69,18 +70,46 @@ function Variant({ piece, product, brief, state, busy, adapted, onTick, onSave }
       ) : (
         <Preview piece={piece} product={product} brief={brief} />
       )}
-      {piece.kind !== 'video' && <p style={{ margin: 0, whiteSpace: 'pre-wrap', color: CREAM_85, overflowWrap: 'anywhere', fontSize: '0.9rem', maxHeight: 120, overflow: 'hidden' }}>{piece.caption}</p>}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 'auto' }}>
         <TickButtons value={state ? state.tick : ''} disabled={busy} onTick={onTick} />
         {piece.kind === 'video'
-          ? <Btn kind="primary" onClick={() => copy('p', piece.prompt)}>{copied === 'p' ? 'Copiado ✓' : 'Copiar prompt'}</Btn>
+          ? <Btn kind="primary" onClick={() => copy('p', piece.prompt)}>{copied === 'p' ? 'Copiado ✓' : 'Copiar prompt del video'}</Btn>
           : <Btn kind="primary" onClick={() => downloadAd({ layout: piece.layout, name: product.name, accent: brief.accent, bg: brief.bg, format: piece.kind }, `${slug}-${piece.kind}-${piece.angle}-${piece.slot}.png`)}>Descargar</Btn>}
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {piece.kind !== 'video' && <Btn onClick={() => copy('t', [piece.caption, piece.hashtags].filter(Boolean).join('\n\n'))}>{copied === 't' ? 'Copiado ✓' : 'Copiar texto'}</Btn>}
         <Btn disabled={busy || Boolean(state && state.id)} onClick={onSave}>{state && state.id ? 'En el CRM ✓' : 'Guardar en el CRM'}</Btn>
       </div>
     </Card>
+  );
+}
+
+// Texto del posteo de la idea (es el mismo para sus 3 versiones de diseño).
+function IdeaText({ idea }) {
+  const [copied, copy] = useCopy();
+  const full = [idea.caption, idea.hashtags].filter(Boolean).join('\n\n');
+  return (
+    <div style={{ border: `1px solid ${LINE}`, borderRadius: 12, padding: '12px 14px', margin: '0 0 14px' }}>
+      <p style={{ margin: '0 0 8px', color: CREAM, fontFamily: DISPLAY }}>Texto del posteo</p>
+      <textarea readOnly aria-label="Texto del posteo" value={full} onFocus={e => e.target.select()} style={{ ...inputStyle, minHeight: 150, lineHeight: 1.5, fontSize: '0.92rem' }} />
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+        <Btn kind="primary" onClick={() => copy('t', full)}>{copied === 't' ? 'Copiado ✓' : 'Copiar texto y hashtags'}</Btn>
+        {idea.copyPrompt && <Btn onClick={() => copy('p', idea.copyPrompt)}>{copied === 'p' ? 'Copiado ✓' : 'Copiar prompt para Claude'}</Btn>}
+      </div>
+      {idea.copyPrompt && <p style={{ margin: '8px 0 0', color: CREAM_85, fontSize: '0.85rem' }}>El texto sale armado con lo que cargaste. Si lo querés más trabajado, pegá el prompt en Claude: te da 3 versiones sin inventar nada.</p>}
+    </div>
+  );
+}
+
+// Qué tipos de mensaje faltan y qué cargar en la ficha para destrabarlos.
+function LockedPanel({ result }) {
+  if (!result.locked || result.locked.length === 0) return null;
+  return (
+    <div style={{ margin: '14px 0 0', padding: '12px 16px', border: `1px dashed ${LINE}`, borderRadius: 12 }}>
+      <p style={{ margin: '0 0 6px', color: CREAM }}>Para tener más conceptos distintos, a la ficha de {result.product.name} le falta:</p>
+      <ul style={{ margin: 0, paddingLeft: 20, color: CREAM_85 }}>
+        {result.locked.map(l => <li key={l.id}><strong style={{ color: CREAM }}>{l.label}</strong>: {l.needs}.</li>)}
+      </ul>
+    </div>
   );
 }
 
@@ -133,7 +162,7 @@ export default function Generator({ client, crm, onReload, initialProduct = '' }
     setSeed(s);
     setError('');
     setSaved({});
-    setResult({ product, ...generatePieces(product, { kind, count, seed: s, creatives: crm.creatives, since: product.learning_since }) });
+    setResult({ product, kind, ...generatePieces(product, { kind, count, seed: s, creatives: crm.creatives, since: product.learning_since }) });
   }
 
   const keyOf = (i, slot) => `${i}-${slot}`;
@@ -208,7 +237,9 @@ export default function Generator({ client, crm, onReload, initialProduct = '' }
     <Card style={{ marginBottom: 28 }}>
       <h2 style={{ fontFamily: DISPLAY, fontSize: '1.4rem', margin: '0 0 6px', color: CREAM }}>Generar piezas</h2>
       <p style={{ margin: '0 0 18px', color: CREAM_85 }}>
-        Cada idea sale en 3 variantes: relajada, estándar (la del medio) y alocada. Descargá las que te sirvan y calificá el diseño con ✓ o ✗ para que el generador aprenda lo que te gusta.
+        Cada idea es un concepto distinto: le habla a un cliente de tu mapa de dolor con un tipo de mensaje (su dolor, la promesa, romper una objeción…).
+        Así lo pide Andromeda, el sistema de Meta que elige qué anuncio mostrar: si dos piezas dicen lo mismo, cuentan como una aunque cambie el diseño.
+        Cada concepto sale en 3 versiones de diseño (relajada, estándar y alocada) con su texto del posteo y hashtags. Calificá el diseño con ✓ o ✗ para que aprenda lo que te gusta.
       </p>
       <Field label="Producto">
         <select style={inputStyle} value={slug} onChange={e => { setSlug(e.target.value); setResult(null); }}>
@@ -224,7 +255,7 @@ export default function Generator({ client, crm, onReload, initialProduct = '' }
           </Field>
         </div>
         <div style={{ flex: '1 1 140px' }}>
-          <Field label="Cuántas ideas" hint="Cada una trae 3 variantes.">
+          <Field label="Cuántas ideas" hint="Cada una es un concepto distinto, con 3 diseños.">
             <select style={inputStyle} value={count} onChange={e => setCount(Number(e.target.value))}>
               {[1, 2, 3, MAX_PER_RUN].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -238,8 +269,24 @@ export default function Generator({ client, crm, onReload, initialProduct = '' }
       {error && <Notice kind="error">{error}</Notice>}
       {result && result.issues.length > 0 && (
         <Notice kind="warn">
-          A la ficha de {result.product.name} le falta: {result.issues.join(' y ')}. Completalo en Productos → {result.product.name} → “Brief para publicidad” y volvé a generar.
+          A la ficha de {result.product.name} le falta: {result.issues.join(' y ')}. Completalo en Productos → {result.product.name} y volvé a generar.
         </Notice>
+      )}
+      {result && !result.usesMap && result.issues.length === 0 && (
+        <Notice kind="warn">
+          {result.product.name} todavía no tiene mapa de dolor: las ideas salen del brief y se parecen más entre sí. Cargalo en Productos → {result.product.name} → “Mapa de dolor”.
+        </Notice>
+      )}
+      {result && result.issues.length === 0 && <LockedPanel result={result} />}
+      {result && result.ideas.length > 0 && (
+        <div style={{ margin: '14px 0 0', padding: '12px 16px', border: `1px solid ${LINE}`, borderRadius: 12 }}>
+          <p style={{ margin: '0 0 6px', color: CREAM }}>La línea de esta tanda</p>
+          <ol style={{ margin: 0, paddingLeft: 20, color: CREAM_85 }}>
+            {result.ideas.map((idea, ii) => (
+              <li key={ii}>{idea.plan}: {idea.label}{idea.personaName ? ` · para ${idea.personaName}` : ''}</li>
+            ))}
+          </ol>
+        </div>
       )}
       {result && result.ideas.length > 0 && (
         <div style={{ marginTop: 22 }}>
@@ -249,9 +296,13 @@ export default function Generator({ client, crm, onReload, initialProduct = '' }
           </div>
           {result.ideas.map((idea, ii) => (
             <div key={`${seed}-${ii}`} style={{ marginBottom: 26 }}>
-              <h3 style={{ margin: '0 0 10px', fontFamily: DISPLAY, fontSize: '1.1rem', color: CREAM, overflowWrap: 'anywhere' }}>
-                Idea {ii + 1} · {idea.label}
+              <h3 style={{ margin: '0 0 4px', fontFamily: DISPLAY, fontSize: '1.1rem', color: CREAM, overflowWrap: 'anywhere' }}>
+                Idea {ii + 1} · {idea.label}{idea.personaName ? ` · para ${idea.personaName}` : ''}
               </h3>
+              <p style={{ margin: '0 0 10px', color: CREAM_85, fontSize: '0.9rem' }}>
+                {idea.plan} · concepto <code>{idea.code}</code>{idea.about ? ` · ${idea.about}` : ''}
+              </p>
+              {result.kind !== 'historia' && <IdeaText idea={idea} />}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
                 {idea.variants.map(p => (
                   <Variant

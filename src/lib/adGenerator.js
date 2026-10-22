@@ -1,10 +1,17 @@
-// Generador de piezas de publicidad. Funciones puras: sin red, sin costo por uso.
-// Cada idea sale en 3 variantes (relajada, estándar, alocada) y el estilo se
-// ajusta con lo que aprendió de los ticks y resultados (adLearning).
+// Creador de posts. Funciones puras: sin red, sin costo por uso.
 //
-// Regla de oro: solo usa los textos del brief del producto (público, dolores,
-// beneficios, funciones, llamado a la acción). No inventa funciones, precios,
-// números ni testimonios. Si el brief es pobre, avisa qué falta en vez de rellenar.
+// Cada idea es un CONCEPTO distinto: a quién le habla (un cliente del mapa de dolor)
+// × qué tipo de mensaje usa (agitar el dolor, la promesa, romper una objeción…).
+// Es lo que pide Andromeda, el sistema de Meta que elige qué anuncio mostrar:
+// piezas que se ven o se sienten parecidas cuentan como una sola, así que la
+// variedad tiene que estar en el mensaje, no solo en el diseño.
+// Cada concepto sale en 3 versiones de diseño (relajada, estándar, alocada) con el
+// mismo texto, más el texto del posteo, 3 a 5 hashtags y un prompt para Claude.
+// El estilo se ajusta con lo que aprendió de los ticks y resultados (adLearning).
+//
+// Regla de oro: solo usa los textos de la ficha del producto (brief y mapa de
+// dolor). No inventa funciones, precios, números ni testimonios. Si falta algo,
+// avisa qué falta en vez de rellenar.
 
 import { EMPTY, candidateWeight, isBlocked, learn, summarize, traitWeight } from './adLearning';
 
@@ -60,7 +67,22 @@ export function briefOf(p) {
     accent: /^#[0-9a-f]{6}$/i.test(p.accent || '') ? p.accent : '#E8B04B',
     bg: /^#[0-9a-f]{6}$/i.test(p.bg || '') ? p.bg : '#0A0E1A',
     motif: p.motif === 'nautico' ? 'nautico' : '',
+    map: painMapOf(p),
   };
+}
+
+const one = v => (typeof v === 'string' ? v.trim() : '');
+// Mapa de dolor guardado en la ficha. `index` es la posición original del cliente:
+// es la que queda guardada en cada pieza para medir por concepto.
+export function painMapOf(p) {
+  const raw = p && p.pain_map && typeof p.pain_map === 'object' && !Array.isArray(p.pain_map) ? p.pain_map : {};
+  const list = Array.isArray(raw.personas) ? raw.personas.slice(0, 4) : [];
+  const personas = list
+    .map((x, index) => (x && typeof x === 'object' ? {
+      index, name: one(x.name), pain: one(x.pain), promise: one(x.promise), proof: one(x.proof), objection: one(x.objection), answer: one(x.answer),
+    } : null))
+    .filter(x => x && x.name);
+  return { personas, belief: one(raw.belief), story: one(raw.story), math: one(raw.math) };
 }
 
 // Qué le falta al brief para poder generar algo que valga la pena.
@@ -91,79 +113,202 @@ function shuffled(list, rand) {
   return out;
 }
 
-// Cada ángulo arma el contenido de una pieza a partir del brief. `n` rota qué
-// dolor o beneficio se usa para que las ideas de una tanda no se repitan.
-export const ANGLES = [
+const lc = s => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+const forWhom = name => `Para ${lc(name)}`;
+const firstSentence = text => (String(text).match(/^[^.!?\n]+[.!?]?/) || [''])[0].trim();
+const without = (list, ...drop) => list.filter(x => !drop.includes(x));
+const listText = items => items.map(x => `• ${x}`).join('\n');
+
+// Tipos de mensaje. `persona: true` → uno por cada cliente del mapa que tenga el dato.
+// `stage` ordena la línea: primero el problema, después la salida, al final la confianza.
+// `body` arma el desarrollo del texto del posteo (los párrafos entre el gancho y el llamado).
+export const CONCEPTS = [
   {
-    id: 'dolor',
-    label: 'Dolor → solución',
-    ok: b => b.pains.length > 0,
-    build: (b, n) => ({
-      headline: b.pains[n % b.pains.length],
-      sub: b.tagline || b.benefits[0],
-      bullets: b.benefits.slice(0, 3),
-    }),
-  },
-  {
-    id: 'beneficio',
-    label: 'Un beneficio',
-    ok: b => b.benefits.length > 0,
-    build: (b, n) => {
-      const i = n % b.benefits.length;
-      return {
-        headline: b.benefits[i],
-        sub: b.tagline,
-        bullets: b.benefits.filter((_, k) => k !== i).slice(0, 3),
-      };
+    id: 'dolor', label: 'Agitar el dolor', stage: 1, persona: true,
+    about: 'Nombra el problema con las palabras del cliente y recién después muestra la salida.',
+    needs: 'el dolor de al menos un cliente',
+    ok: (b, p) => Boolean(p.pain),
+    build: (b, p) => {
+      const sub = p.promise || b.tagline;
+      const rest = without(b.benefits, sub).slice(0, 3);
+      return { headline: p.pain, sub, bullets: rest, body: [sub, listText(rest)] };
     },
   },
   {
-    id: 'como',
-    label: 'Cómo funciona',
+    id: 'promesa', label: 'La promesa', stage: 2, persona: true,
+    about: 'Arranca por el resultado que se lleva el cliente.',
+    needs: 'la promesa para al menos un cliente',
+    ok: (b, p) => Boolean(p.promise),
+    build: (b, p) => {
+      const rest = without(b.benefits, p.promise).slice(0, 3);
+      return { headline: p.promise, sub: forWhom(p.name), bullets: rest, body: [`${forWhom(p.name)}.`, listText(rest)] };
+    },
+  },
+  {
+    id: 'objecion', label: 'Romper una objeción', stage: 3, persona: true,
+    about: 'Dice en voz alta la duda que frena la compra y la responde.',
+    needs: 'una objeción con su respuesta en algún cliente',
+    ok: (b, p) => Boolean(p.objection && p.answer),
+    build: (b, p) => ({ headline: p.objection, sub: p.answer, bullets: [], body: [p.answer, p.promise] }),
+  },
+  {
+    id: 'prueba', label: 'Prueba real', stage: 3, persona: true,
+    about: 'Muestra algo verificable: un caso, un número real, una captura. Nunca algo inventado.',
+    needs: 'una prueba real (un caso, un dato verificable) en algún cliente',
+    ok: (b, p) => Boolean(p.proof),
+    build: (b, p) => ({ headline: p.proof, sub: p.promise || b.tagline, bullets: [], body: [p.promise || b.tagline] }),
+  },
+  {
+    id: 'como', label: 'Cómo funciona', stage: 2, persona: false,
+    about: 'Muestra el producto en acción: qué hace, paso a paso.',
+    needs: 'al menos 2 funciones en la ficha',
     ok: b => b.features.length >= 2,
-    build: b => ({ headline: 'Así funciona', sub: b.tagline, bullets: b.features.slice(0, 4) }),
+    build: b => ({ headline: 'Así funciona', sub: b.tagline, bullets: b.features.slice(0, 4), body: [b.tagline, listText(b.features.slice(0, 5))] }),
   },
   {
-    id: 'para-quien',
-    label: 'Para quién es',
-    ok: b => Boolean(b.audience),
-    build: (b, n) => ({
-      headline: `Hecho para ${b.audience.charAt(0).toLowerCase()}${b.audience.slice(1)}`,
-      sub: b.benefits[n % b.benefits.length],
-      bullets: [],
-    }),
+    id: 'contra', label: 'Contra la corriente', stage: 1, persona: false,
+    about: 'Discute algo que todos dan por cierto en el rubro.',
+    needs: '“lo que discutís” en el mapa de dolor',
+    ok: b => Boolean(b.map.belief),
+    build: b => {
+      const rest = b.benefits.slice(0, 2);
+      return { headline: b.map.belief, sub: b.tagline, bullets: rest, body: [b.tagline, listText(rest)] };
+    },
   },
   {
-    id: 'todo-en-uno',
-    label: 'Todo en uno',
-    ok: b => Boolean(b.tagline),
-    build: b => ({ headline: b.tagline, sub: b.audience ? `Para ${b.audience.charAt(0).toLowerCase()}${b.audience.slice(1)}` : '', bullets: b.benefits.slice(0, 3) }),
+    id: 'cuenta', label: 'La cuenta', stage: 2, persona: false,
+    about: 'Hace la cuenta de plata o de tiempo, con números reales.',
+    needs: '“la cuenta” en el mapa de dolor',
+    ok: b => Boolean(b.map.math),
+    build: b => {
+      const rest = b.benefits.slice(0, 2);
+      return { headline: b.map.math, sub: b.tagline, bullets: rest, body: [b.tagline, listText(rest)] };
+    },
+  },
+  {
+    id: 'fundador', label: 'Por qué lo hicimos', stage: 3, persona: false,
+    about: 'Cuenta en primera persona por qué existe el producto.',
+    needs: '“tu historia” en el mapa de dolor',
+    ok: b => Boolean(b.map.story),
+    build: b => ({ headline: `Por qué hicimos ${b.name}`, sub: firstSentence(b.map.story), bullets: [], body: [b.map.story] }),
   },
 ];
 
-// Contenido de una idea (el mismo texto para sus 3 variantes).
-function contentFor(brief, angle, n) {
-  const raw = angle.build(brief, n);
+// Sin mapa de dolor: los ángulos de siempre, armados con el brief.
+export const ANGLES = [
+  {
+    id: 'dolor', label: 'Dolor → solución', stage: 1,
+    ok: b => b.pains.length > 0,
+    build: (b, n) => {
+      const sub = b.tagline || b.benefits[0];
+      const rest = b.benefits.slice(0, 3);
+      return { headline: b.pains[n % b.pains.length], sub, bullets: rest, body: [sub, listText(without(rest, sub))] };
+    },
+  },
+  {
+    id: 'beneficio', label: 'Un beneficio', stage: 2,
+    ok: b => b.benefits.length > 0,
+    build: (b, n) => {
+      const i = n % b.benefits.length;
+      const rest = b.benefits.filter((_, k) => k !== i).slice(0, 3);
+      return { headline: b.benefits[i], sub: b.tagline, bullets: rest, body: [b.tagline, listText(rest)] };
+    },
+  },
+  {
+    id: 'como', label: 'Cómo funciona', stage: 2,
+    ok: b => b.features.length >= 2,
+    build: b => ({ headline: 'Así funciona', sub: b.tagline, bullets: b.features.slice(0, 4), body: [b.tagline, listText(b.features.slice(0, 5))] }),
+  },
+  {
+    id: 'para-quien', label: 'Para quién es', stage: 1,
+    ok: b => Boolean(b.audience),
+    build: (b, n) => {
+      const sub = b.benefits[n % b.benefits.length];
+      return { headline: `Hecho para ${lc(b.audience)}`, sub, bullets: [], body: [sub] };
+    },
+  },
+  {
+    id: 'todo-en-uno', label: 'Todo en uno', stage: 3,
+    ok: b => Boolean(b.tagline),
+    build: b => {
+      const sub = b.audience ? forWhom(b.audience) : '';
+      return { headline: b.tagline, sub, bullets: b.benefits.slice(0, 3), body: [sub && `${sub}.`, listText(b.benefits.slice(0, 3))] };
+    },
+  },
+];
+const CONCEPT_BY_ID = Object.fromEntries([...ANGLES, ...CONCEPTS].map(c => [c.id, c]));
+export const conceptLabel = id => (CONCEPT_BY_ID[id] && CONCEPT_BY_ID[id].label) || id;
+// Código corto para medir por concepto: tipo de mensaje + cliente (si le habla a uno).
+export const conceptCode = layout => (layout && layout.angle
+  ? `${layout.angle}${Number.isInteger(layout.persona) ? `-c${layout.persona + 1}` : ''}`
+  : '');
+
+// Todos los conceptos que se pueden armar con lo que hay en la ficha, y los que no
+// (con lo que falta para destrabarlos).
+export function conceptsFor(brief) {
+  const usesMap = brief.map.personas.length > 0;
+  const types = usesMap ? CONCEPTS : [...ANGLES, ...CONCEPTS.filter(c => !c.persona && c.id !== 'como')];
+  const available = [];
+  const locked = [];
+  for (const c of types) {
+    const options = c.persona
+      ? brief.map.personas.filter(p => c.ok(brief, p)).map(p => ({ concept: c, persona: p }))
+      : (c.ok(brief) ? [{ concept: c, persona: null }] : []);
+    if (options.length) available.push(...options);
+    else if (c.needs) locked.push({ id: c.id, label: c.label, needs: c.needs });
+  }
+  return { usesMap, available, locked };
+}
+
+// Contenido de una idea (el mismo texto para sus 3 variantes de diseño).
+function contentFor(brief, option, n) {
+  const raw = option.concept.build(brief, option.persona || n, n);
+  const headline = clip(raw.headline, 120);
   return {
-    headline: clip(raw.headline, 120),
+    headline,
     sub: clip(raw.sub, 200),
-    bullets: (raw.bullets || []).slice(0, 4).map(x => clip(x, 90)),
+    bullets: (raw.bullets || []).filter(Boolean).slice(0, 4).map(x => clip(x, 90)),
     cta: clip(brief.cta, 80),
-    angle: angle.id,
+    angle: option.concept.id,
+    persona: option.persona ? option.persona.index : null,
+    body: (raw.body || []).filter(x => x && x !== headline),
   };
 }
 
 function layoutOf(content, slot, tpl, theme) {
-  const bullets = slot === 'estandar' ? content.bullets : content.bullets.slice(0, 2);
-  return { ...content, bullets, tpl, theme, vibe: slot };
+  const { body, ...rest } = content;
+  void body;
+  const bullets = slot === 'estandar' ? rest.bullets : rest.bullets.slice(0, 2);
+  return { ...rest, bullets, tpl, theme, vibe: slot };
 }
 
-function captionFor(layout) {
-  const parts = [layout.headline];
-  if (layout.sub) parts.push(layout.sub);
-  if (layout.bullets.length) parts.push(layout.bullets.map(b => `• ${b}`).join('\n'));
-  if (layout.cta) parts.push(`→ ${layout.cta}`);
-  return clip(parts.join('\n\n'), 2200);
+// Texto del posteo armado con reglas: gancho (lo que dice la imagen) → desarrollo → llamado.
+export function captionFor(content) {
+  const parts = [content.headline, ...content.body];
+  if (content.cta) parts.push(`→ ${content.cta}`);
+  return clip([...new Set(parts.filter(Boolean))].join('\n\n'), 2200);
+}
+
+// Hashtags: Instagram acepta hasta 5 por post y no suben el alcance; sirven para que se
+// entienda de qué trata. Del listado de la ficha queda siempre el de la marca y el
+// resto rota entre ideas para no publicar siempre los mismos.
+export const MAX_HASHTAGS = 5;
+export function hashtagPool(text) {
+  const tags = String(text || '').split(/[\s,;]+/).map(t => t.replace(/^#+/, '')).filter(t => /^[\p{L}\p{N}_]{2,40}$/u.test(t));
+  const seen = new Set();
+  return tags.filter(t => (seen.has(t.toLowerCase()) ? false : seen.add(t.toLowerCase()))).map(t => `#${t}`);
+}
+export function hashtagsFor(brief, i = 0) {
+  const pool = hashtagPool(brief.hashtags);
+  if (pool.length <= MAX_HASHTAGS) return pool.join(' ');
+  const key = slugOf(brief.name).replace(/-/g, '');
+  const plain = t => t.slice(1).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const brand = pool.filter(t => key && plain(t).includes(key)).slice(0, 1);
+  const rest = pool.filter(t => !brand.includes(t));
+  const room = MAX_HASHTAGS - brand.length;
+  const start = (i * room) % rest.length;
+  const picked = [...rest.slice(start), ...rest.slice(0, start)].slice(0, room);
+  return [...brand, ...picked].join(' ');
 }
 
 const slugOf = s => String(s || 'pieza').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'pieza';
@@ -219,6 +364,99 @@ export function videoPrompt(brief, layout, index = 1) {
     '',
     `Entrega: guardá el resultado como ./salida/${slugOf(brief.name)}-video-${index}-${layout.vibe || 'estandar'}.mp4 y decime la ruta. Usá tu skill de motion graphics si la tenés instalada; si no, Remotion, o HTML + CSS renderizado con Playwright y ffmpeg.`,
   ].filter((l, i, a) => !(l === '' && (a[i - 1] === '' || a[i - 1] === undefined))).join('\n');
+}
+
+// Prompt para pegar en Claude (el chat) y que escriba el texto del posteo con más
+// trabajo que las reglas. Lleva solo el material de la ficha y prohíbe inventar.
+export function copyPrompt(brief, idea) {
+  const c = CONCEPT_BY_ID[idea.angle] || {};
+  const p = Number.isInteger(idea.persona) ? brief.map.personas.find(x => x.index === idea.persona) : null;
+  const pool = hashtagPool(brief.hashtags);
+  const material = [
+    p && p.pain && `- Dolor del cliente: ${p.pain}`,
+    p && p.promise && `- Lo que le prometemos: ${p.promise}`,
+    p && p.proof && `- Prueba real: ${p.proof}`,
+    p && p.objection && `- Objeción que pone: ${p.objection}`,
+    p && p.answer && `- Cómo la respondemos: ${p.answer}`,
+    !p && brief.pains.length > 0 && `- Dolores: ${brief.pains.join(' / ')}`,
+    brief.benefits.length > 0 && `- Beneficios: ${brief.benefits.join(' / ')}`,
+    (idea.angle === 'como' || brief.features.length > 0) && brief.features.length > 0 && `- Funciones: ${brief.features.join(' / ')}`,
+    idea.angle === 'contra' && brief.map.belief && `- Lo que discutimos: ${brief.map.belief}`,
+    idea.angle === 'cuenta' && brief.map.math && `- La cuenta: ${brief.map.math}`,
+    idea.angle === 'fundador' && brief.map.story && `- Nuestra historia: ${brief.map.story}`,
+    brief.cta && `- Llamado a la acción: ${brief.cta}`,
+  ].filter(Boolean);
+  const who = p ? lc(p.name) : brief.audience;
+  return [
+    `Escribí el texto (caption) de un post de Instagram para “${brief.name}”${brief.tagline ? `: ${brief.tagline}` : ''}.`,
+    '',
+    `Tipo de mensaje: ${c.label || idea.angle}. ${c.about || ''}`.trim(),
+    who ? `Le hablás a: ${who}.` : '',
+    `Tono: ${brief.tone || 'directo y cercano'}. Español rioplatense, con voseo.`,
+    '',
+    'Material (es todo lo que sabés del producto):',
+    ...material,
+    '',
+    `La imagen del post ya dice: “${idea.layout.headline}”${idea.layout.sub ? ` / “${idea.layout.sub}”` : ''}. El texto tiene que sumar, no repetir la imagen palabra por palabra.`,
+    '',
+    'Estructura:',
+    '1. Gancho: una línea que se entienda sin ver la imagen.',
+    '2. Desarrollo: 2 a 4 líneas cortas.',
+    '3. Cierre con el llamado a la acción.',
+    '',
+    'Reglas:',
+    '- No inventes funciones, números, precios, plazos, testimonios ni resultados: usá solo el material de arriba.',
+    '- Máximo 600 caracteres sin contar los hashtags. Como mucho un emoji.',
+    pool.length ? `- Al final, como mucho ${MAX_HASHTAGS} hashtags elegidos de esta lista: ${pool.join(' ')}` : '- Sin hashtags.',
+    '',
+    'Dame 3 versiones bien distintas entre sí (que no arranquen igual).',
+  ].filter((l, i, a) => !(l === '' && (a[i - 1] === '' || a[i - 1] === undefined))).join('\n');
+}
+
+// La línea: los conceptos de una tanda ordenados de problema → salida → confianza,
+// repartidos en lunes, miércoles y viernes.
+export const PLAN_DAYS = ['lunes', 'miércoles', 'viernes'];
+export const planSlot = i => `Semana ${Math.floor(i / PLAN_DAYS.length) + 1} · ${PLAN_DAYS[i % PLAN_DAYS.length]}`;
+
+// Elige `n` conceptos sin repetir la combinación tipo × cliente mientras queden: pasa
+// por los tipos de mensaje (los que mejor anduvieron, más arriba), salta los que ya no
+// tienen combinaciones nuevas y, dentro de cada tipo, toma el cliente menos usado.
+// Solo repite cuando no queda ninguna combinación sin usar.
+function pickConcepts(available, n, learned, rand) {
+  const types = weightedOrder([...new Set(available.map(o => o.concept))], c => traitWeight(learned, `angle:${c.id}`), rand);
+  const used = new Set();
+  const personaUse = new Map();
+  const keyOf = o => `${o.concept.id}|${o.persona ? o.persona.index : ''}`;
+  const useOf = o => (o.persona ? personaUse.get(o.persona.index) || 0 : 0);
+  const picked = [];
+  let cursor = 0;
+  while (picked.length < n) {
+    const anyFresh = available.some(o => !used.has(keyOf(o)));
+    let type = null;
+    for (let k = 0; k < types.length; k += 1) {
+      const t = types[(cursor + k) % types.length];
+      if (!anyFresh || available.some(o => o.concept === t && !used.has(keyOf(o)))) {
+        type = t;
+        cursor = (cursor + k + 1) % types.length;
+        break;
+      }
+    }
+    const options = available.filter(o => o.concept === type);
+    const fresh = options.filter(o => !used.has(keyOf(o)));
+    const pool = fresh.length ? fresh : options;
+    const least = Math.min(...pool.map(useOf));
+    const choices = pool.filter(o => useOf(o) === least);
+    const choice = choices[Math.floor(rand() * choices.length)];
+    const repeat = used.has(keyOf(choice));
+    used.add(keyOf(choice));
+    if (choice.persona) personaUse.set(choice.persona.index, useOf(choice) + 1);
+    picked.push({ ...choice, round: repeat ? picked.filter(x => keyOf(x) === keyOf(choice)).length : 0 });
+  }
+  // La línea: alterna problema → salida → confianza (cada etapa en el orden elegido).
+  const stages = [1, 2, 3].map(st => picked.filter(o => o.concept.stage === st));
+  const line = [];
+  while (line.length < picked.length) for (const st of stages) if (st.length) line.push(st.shift());
+  return line;
 }
 
 // Elige un elemento según su peso (mayor peso, más probable).
@@ -282,47 +520,58 @@ function pickStyles(content, learned, rand, batch, groups) {
   return { adapted, styles: { relajada: calm, estandar: standard, alocada: wild } };
 }
 
-// Genera `count` ideas, cada una con 3 variantes (relajada, estándar, alocada), del tipo
-// `kind` ('post' | 'historia' | 'video'). `seed` permite regenerar una tanda distinta.
-// `creatives` y `since` son las piezas guardadas y la fecha desde la que se aprende.
+// Genera `count` conceptos, cada uno con 3 variantes de diseño (relajada, estándar,
+// alocada), del tipo `kind` ('post' | 'historia' | 'video'). `seed` permite regenerar
+// una tanda distinta. `creatives` y `since` son las piezas guardadas y la fecha desde
+// la que se aprende.
 export function generatePieces(product, { kind, count = 2, seed = 1, creatives = [], since = null }) {
   if (!FORMATS[kind]) throw new Error('Tipo de pieza inválido');
   const brief = briefOf(product);
   const issues = briefIssues(brief);
-  if (issues.length) return { brief, issues, ideas: [], pieces: [], learned: summarize(EMPTY), adapted: false };
+  const { usesMap, available, locked } = conceptsFor(brief);
+  const empty = { brief, issues, ideas: [], pieces: [], learned: summarize(EMPTY), adapted: false, usesMap, locked };
+  if (issues.length || available.length === 0) return { ...empty, issues: issues.length ? issues : ['al menos un dolor o un beneficio'] };
 
   const learned = learn(creatives, { slug: product.slug, kind, since });
   const n = Math.max(1, Math.min(MAX_PER_RUN, Math.floor(count) || 1));
   const rand = rng(seed);
-  const angles = weightedOrder(ANGLES.filter(a => a.ok(brief)), a => traitWeight(learned, `angle:${a.id}`), rand);
+  const chosen = pickConcepts(available, n, learned, rand);
+  // Qué dolor o beneficio de la ficha usa cada ángulo: cambia con la semilla.
+  const offset = (seed >>> 0) % 9973;
   const ideas = [];
   const groups = groupsFor(brief.motif);
   const batch = { tpls: new Set(), themes: new Map() };
   let adaptedAny = false;
-  for (let i = 0; i < n; i += 1) {
-    const angle = angles[i % angles.length];
-    const round = Math.floor(i / angles.length);
-    const content = contentFor(brief, angle, i + round);
+  chosen.forEach((option, i) => {
+    const content = contentFor(brief, option, offset + i + option.round);
     const { adapted, styles } = pickStyles(content, learned, rand, batch, groups);
     adaptedAny = adaptedAny || adapted;
+    const label = option.concept.label;
+    const personaName = option.persona ? option.persona.name : '';
+    const plan = planSlot(i);
+    const caption = captionFor(content);
+    const hashtags = hashtagsFor(brief, i);
     const variants = SLOTS.map(slot => {
       const layout = styles[slot].layout;
       const size = FORMATS[kind];
+      const who = personaName ? ` Le habla a: ${lc(personaName)}.` : '';
       return {
         slot,
         kind,
-        angle: angle.id,
-        title: clip(`${FORMATS[kind].label} · ${SLOT_LABELS[slot]} · ${angle.label}: ${layout.headline}`, 120),
+        angle: option.concept.id,
+        title: clip(`${FORMATS[kind].label} · ${SLOT_LABELS[slot]} · ${label}: ${layout.headline}`, 120),
         concept: kind === 'video'
-          ? `Video vertical de motion graphics, estilo ${SLOT_LABELS[slot].toLowerCase()}. Ángulo: ${angle.label}. Gancho: “${layout.headline}”.`
-          : `${size.label} ${size.w}×${size.h}, estilo ${SLOT_LABELS[slot].toLowerCase()} (${layout.tpl}), fondo ${layout.theme === 'dark' ? 'oscuro' : layout.theme === 'light' ? 'claro' : 'de color'}. Ángulo: ${angle.label}.`,
-        caption: captionFor(layout),
-        hashtags: brief.hashtags,
+          ? `Concepto: ${label}.${who} Video vertical de motion graphics, estilo ${SLOT_LABELS[slot].toLowerCase()}. Gancho: “${layout.headline}”. Día sugerido: ${plan}.`
+          : `Concepto: ${label}.${who} ${size.label} ${size.w}×${size.h}, estilo ${SLOT_LABELS[slot].toLowerCase()} (${layout.tpl}), fondo ${layout.theme === 'dark' ? 'oscuro' : layout.theme === 'light' ? 'claro' : 'de color'}. Día sugerido: ${plan}.`,
+        caption,
+        hashtags,
         layout,
         prompt: kind === 'video' ? videoPrompt(brief, layout, i + 1) : '',
       };
     });
-    ideas.push({ angle: angle.id, label: angle.label, variants });
-  }
-  return { brief, issues: [], ideas, pieces: ideas.flatMap(i => i.variants), learned: summarize(learned), adapted: adaptedAny };
+    const idea = { angle: option.concept.id, label, persona: content.persona, personaName, plan, code: conceptCode(content), about: option.concept.about || '', caption, hashtags, variants };
+    idea.copyPrompt = kind === 'historia' ? '' : copyPrompt(brief, { ...idea, layout: variants[1].layout });
+    ideas.push(idea);
+  });
+  return { brief, issues: [], ideas, pieces: ideas.flatMap(i => i.variants), learned: summarize(learned), adapted: adaptedAny, usesMap, locked };
 }

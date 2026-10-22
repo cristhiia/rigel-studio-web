@@ -94,6 +94,38 @@ export function cleanLayout(raw) {
     tpl: oneOf(raw.tpl, TEMPLATES, 'Plantilla', 'clasica'),
     vibe: oneOf(raw.vibe, VIBES, 'Estilo', 'estandar'),
     angle: raw.angle === undefined || raw.angle === null || raw.angle === '' ? '' : (typeof raw.angle === 'string' && /^[a-z-]{1,20}$/.test(raw.angle) ? raw.angle : fail('Ángulo inválido')),
+    // Índice del tipo de cliente del mapa de dolor al que le habla la pieza (o ninguno).
+    persona: raw.persona === undefined || raw.persona === null ? null
+      : (Number.isInteger(raw.persona) && raw.persona >= 0 && raw.persona < PAIN_MAP_PERSONAS ? raw.persona : fail('Cliente inválido')),
+  }
+}
+
+// Mapa de dolor del producto: hasta 4 tipos de cliente y 3 textos de marca.
+// Cada texto lo escribe una persona; el generador lo usa tal cual (no inventa).
+export const PAIN_MAP_PERSONAS = 4
+const PERSONA_FIELDS = [
+  // Los que pueden ir de titular en la imagen tienen el mismo tope que el titular (120).
+  ['name', 60, 'Para quién'], ['pain', 120, 'Dolor'], ['promise', 120, 'Promesa'],
+  ['proof', 120, 'Prueba'], ['objection', 120, 'Objeción'], ['answer', 200, 'Respuesta a la objeción'],
+]
+export function cleanPainMap(raw) {
+  if (raw === undefined || raw === null) return {}
+  if (!isPlainObject(raw)) fail('Mapa de dolor inválido')
+  const list = raw.personas === undefined || raw.personas === null ? [] : raw.personas
+  if (!Array.isArray(list) || list.length > PAIN_MAP_PERSONAS) fail(`Mapa de dolor: hasta ${PAIN_MAP_PERSONAS} tipos de cliente`)
+  const personas = list.map((p, i) => {
+    if (!isPlainObject(p)) fail('Mapa de dolor: cliente inválido')
+    const out = {}
+    for (const [k, max, label] of PERSONA_FIELDS) out[k] = cleanText(p[k], max, `Cliente ${i + 1} · ${label}`)
+    if (!out.name) fail(`Cliente ${i + 1}: completá para quién es`)
+    if (Boolean(out.objection) !== Boolean(out.answer)) fail(`Cliente ${i + 1}: la objeción va con su respuesta`)
+    return out
+  })
+  return {
+    personas,
+    belief: cleanText(raw.belief, 120, 'Lo que discutís'),
+    story: cleanText(raw.story, 600, 'Tu historia', { multiline: true }),
+    math: cleanText(raw.math, 120, 'La cuenta'),
   }
 }
 
@@ -152,6 +184,7 @@ export function parseProduct(body) {
     accent: cleanHex(body.accent, 'Color de acento'),
     bg: cleanHex(body.bg, 'Color de fondo'),
     ...(body.motif === undefined ? {} : { motif: oneOf(body.motif, MOTIFS, 'Estilo visual', '') }),
+    ...(body.pain_map === undefined ? {} : { pain_map: cleanPainMap(body.pain_map) }),
     billing_slug: billingSlug,
     manual_users: cleanInt(body.manual_users, 10_000_000, 'Usuarios'),
     manual_mrr_ars: cleanInt(body.manual_mrr_ars, MONEY_MAX, 'Ingreso mensual'),

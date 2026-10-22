@@ -79,6 +79,63 @@ const BLANK = {
   competition: '', brand_brief: '', links: '', audience: '', pains: '', benefits: '', cta: '', tone: '', hashtags: '', accent: '', bg: '', motif: '', billing_slug: '', manual_users: '0', manual_mrr_ars: '0', sort_order: '100',
 };
 const toForm = p => Object.fromEntries(Object.keys(BLANK).map(k => [k, p[k] === null || p[k] === undefined ? '' : String(p[k])]));
+
+// Mapa de dolor: tipos de cliente y tres textos de marca que usa el creador de posts.
+const MAX_PERSONAS = 4;
+const PERSONA_BLANK = { name: '', pain: '', promise: '', proof: '', objection: '', answer: '' };
+const PERSONA_FIELDS = [
+  ['name', 'Para quién es', 60, 'Completá la frase “Para …”. Ej. “quienes llegan a fin de mes sin saber en qué gastaron”.'],
+  ['pain', 'Su dolor, en sus palabras', 120, 'Lo que se dice a sí mismo. Va de titular, así que hasta 120 caracteres.'],
+  ['promise', 'Qué le prometemos', 120, 'El resultado que se lleva. Solo lo que el producto hace hoy.'],
+  ['objection', 'Qué lo frena (objeción)', 120, 'La duda que pone antes de probar. Ej. “¿Otra app más? Ya las dejé todas”.'],
+  ['answer', 'Cómo le respondemos', 200, 'Va junto con la objeción.'],
+  ['proof', 'Prueba real (opcional)', 120, 'Un caso o un dato verificable. Si todavía no tenés, dejalo vacío: nunca lo inventes.'],
+];
+const mapOf = p => {
+  const raw = p && p.pain_map && typeof p.pain_map === 'object' ? p.pain_map : {};
+  const personas = Array.isArray(raw.personas) ? raw.personas.map(x => ({ ...PERSONA_BLANK, ...x })) : [];
+  return { personas, belief: raw.belief || '', story: raw.story || '', math: raw.math || '' };
+};
+// Lo que se guarda: sin clientes vacíos.
+const cleanMap = m => ({ ...m, personas: m.personas.filter(x => Object.values(x).some(v => String(v).trim())) });
+
+function PainMap({ map, setMap }) {
+  const setPersona = (i, k, v) => setMap(m => ({ ...m, personas: m.personas.map((x, j) => (j === i ? { ...x, [k]: v } : x)) }));
+  return (
+    <>
+      <h3 style={{ fontFamily: DISPLAY, fontSize: '1.15rem', margin: '28px 0 6px', color: CREAM }}>Mapa de dolor</h3>
+      <p style={{ margin: '0 0 16px', color: CREAM_85 }}>
+        Es la línea que sigue el creador de posts. Cada post combina un cliente con un tipo de mensaje (su dolor, la promesa, romper su objeción, una prueba real…),
+        así no salen 5 posts que digan lo mismo con otro diseño. Con 2 o 3 clientes bien distintos alcanza.
+      </p>
+      {map.personas.map((x, i) => (
+        <div key={i} style={{ border: `1px solid ${LINE}`, borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <p style={{ margin: 0, color: CREAM, fontFamily: DISPLAY }}>Cliente {i + 1}</p>
+            <Btn kind="danger" onClick={() => setMap(m => ({ ...m, personas: m.personas.filter((_, j) => j !== i) }))} style={{ padding: '6px 14px', minHeight: 36, fontSize: '0.9rem' }}>Quitar</Btn>
+          </div>
+          {PERSONA_FIELDS.map(([k, label, max, hint]) => (
+            <Field key={k} label={label} hint={hint}>
+              <input style={inputStyle} maxLength={max} value={x[k]} onChange={e => setPersona(i, k, e.target.value)} />
+            </Field>
+          ))}
+        </div>
+      ))}
+      {map.personas.length < MAX_PERSONAS && (
+        <Btn onClick={() => setMap(m => ({ ...m, personas: [...m.personas, { ...PERSONA_BLANK }] }))} style={{ marginBottom: 18 }}>+ Agregar cliente</Btn>
+      )}
+      <Field label="Lo que discutís (contra la corriente)" hint="Algo que todos creen en el rubro y vos no. Ej. “Ordenar la plata no es anotar cada gasto”.">
+        <input style={inputStyle} maxLength={120} value={map.belief} onChange={e => setMap(m => ({ ...m, belief: e.target.value }))} />
+      </Field>
+      <Field label="La cuenta" hint="Una cuenta de plata o de tiempo con números reales. Ej. “USD 10 por mes es menos de lo que se va en …” (solo si es verdad).">
+        <input style={inputStyle} maxLength={120} value={map.math} onChange={e => setMap(m => ({ ...m, math: e.target.value }))} />
+      </Field>
+      <Field label="Tu historia" hint="Por qué hiciste este producto, en primera persona. Va entera en el texto del posteo.">
+        <textarea style={{ ...textarea, minHeight: 90 }} maxLength={600} value={map.story} onChange={e => setMap(m => ({ ...m, story: e.target.value }))} />
+      </Field>
+    </>
+  );
+}
 const slugify = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 
 function contextText(product, numbers, log, creatives) {
@@ -94,6 +151,16 @@ function contextText(product, numbers, log, creatives) {
     product.competition && `\n## Competencia\n${product.competition}`,
     product.brand_brief && `\n## Brief para publicidad\n${product.brand_brief}`,
   ].filter(Boolean);
+  const m = mapOf(product);
+  if (m.personas.length || m.belief || m.math || m.story) {
+    lines.push('\n## Mapa de dolor');
+    m.personas.forEach((x, i) => lines.push(
+      `- Cliente ${i + 1}: para ${x.name}${x.pain ? ` · dolor: ${x.pain}` : ''}${x.promise ? ` · promesa: ${x.promise}` : ''}${x.objection ? ` · objeción: ${x.objection} → ${x.answer}` : ''}${x.proof ? ` · prueba: ${x.proof}` : ''}`,
+    ));
+    if (m.belief) lines.push(`- Lo que discutimos: ${m.belief}`);
+    if (m.math) lines.push(`- La cuenta: ${m.math}`);
+    if (m.story) lines.push(`- Nuestra historia: ${m.story}`);
+  }
   if (log.length) lines.push('\n## Últimos avances', ...log.slice(0, 10).map(l => `- ${formatDay(l.at)} [${LOG_KINDS[l.kind] || l.kind}] ${l.text}`));
   const learned = creatives.filter(c => c.verdict);
   if (learned.length) {
@@ -105,6 +172,7 @@ function contextText(product, numbers, log, creatives) {
 function Ficha({ product, numbers, log, creatives, billing, client, onBack, onChanged, onOpenAds }) {
   const isNew = !product;
   const [form, setForm] = useState(isNew ? BLANK : toForm(product));
+  const [map, setMap] = useState(() => mapOf(product));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
   const [entry, setEntry] = useState({ kind: 'avance', text: '' });
@@ -127,7 +195,7 @@ function Ficha({ product, numbers, log, creatives, billing, client, onBack, onCh
     }
   }
 
-  const save = () => run(() => adminRequest(client, 'crm', { method: 'POST', body: { action: 'product_save', ...form, billing_slug: form.billing_slug || null } }), 'Guardado');
+  const save = () => run(() => adminRequest(client, 'crm', { method: 'POST', body: { action: 'product_save', ...form, pain_map: cleanMap(map), billing_slug: form.billing_slug || null } }), 'Guardado');
   const addLog = async () => {
     if (await run(() => adminRequest(client, 'crm', { method: 'POST', body: { action: 'log_add', product: product.slug, ...entry } }), 'Anotado')) setEntry(e => ({ ...e, text: '' }));
   };
@@ -199,7 +267,8 @@ function Ficha({ product, numbers, log, creatives, billing, client, onBack, onCh
         <Field label="Beneficios (uno por línea, mínimo 2)"><textarea style={textarea} maxLength={1500} {...field('benefits')} /></Field>
         <Field label="Llamado a la acción" hint="Ej. “Sumate al acceso anticipado”."><input style={inputStyle} maxLength={100} {...field('cta')} /></Field>
         <Field label="Tono (para los videos)"><input style={inputStyle} maxLength={200} {...field('tone')} /></Field>
-        <Field label="Hashtags base"><input style={inputStyle} maxLength={300} placeholder="#kiosco #emprendedores" {...field('hashtags')} /></Field>
+        <Field label="Hashtags" hint="Instagram acepta hasta 5 por post. Si cargás más, el creador deja siempre el de la marca y rota el resto entre posts."><input style={inputStyle} maxLength={300} placeholder="#kiosco #emprendedores #sanjuan" {...field('hashtags')} /></Field>
+        <PainMap map={map} setMap={setMap} />
         <Field label="Estilo visual" hint="Con “Náutico” el generador suma plantillas con brújula, ancla, velero, plano y arco luminoso.">
           <select style={inputStyle} {...field('motif')}>
             <option value="">Ninguno (plantillas generales)</option>

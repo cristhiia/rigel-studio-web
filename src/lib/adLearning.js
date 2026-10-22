@@ -23,6 +23,8 @@ function median(nums) {
 export const traitsOf = layout => {
   const out = [`tpl:${layout.tpl || 'clasica'}`, `theme:${layout.theme || 'dark'}`];
   if (layout.angle) out.push(`angle:${layout.angle}`);
+  // Concepto = tipo de mensaje × cliente del mapa de dolor (se mide aparte de cada uno).
+  if (layout.angle && Number.isInteger(layout.persona)) out.push(`concept:${layout.angle}-c${layout.persona + 1}`);
   return out;
 };
 export const signatureOf = layout => `${layout.tpl || 'clasica'}|${layout.theme || 'dark'}|${layout.headline}`;
@@ -92,10 +94,17 @@ const LABELS = {
     velero: 'plantilla velero', condensada: 'plantilla letras condensadas', plano: 'plantilla plano técnico', pixel: 'plantilla pixelada',
   },
   theme: { dark: 'fondo oscuro', accent: 'fondo de color', light: 'fondo claro' },
-  angle: { dolor: 'mensajes de dolor → solución', beneficio: 'mensajes de un beneficio', como: 'mensajes de cómo funciona', 'para-quien': 'mensajes de para quién es', 'todo-en-uno': 'mensajes todo en uno' },
+  angle: {
+    dolor: 'mensajes de dolor', beneficio: 'mensajes de un beneficio', como: 'mensajes de cómo funciona', 'para-quien': 'mensajes de para quién es', 'todo-en-uno': 'mensajes todo en uno',
+    promesa: 'mensajes de la promesa', objecion: 'romper objeciones', prueba: 'pruebas reales', contra: 'mensajes contra la corriente', cuenta: 'hacer la cuenta', fundador: 'la historia de por qué lo hicimos',
+  },
 };
 export function labelOf(trait) {
   const [k, v] = trait.split(':');
+  if (k === 'concept') {
+    const m = /^(.+)-c(\d)$/.exec(v || '');
+    if (m) return `${LABELS.angle[m[1]] || m[1]} para el cliente ${m[2]}`;
+  }
   return (LABELS[k] && LABELS[k][v]) || trait;
 }
 

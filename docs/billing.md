@@ -388,3 +388,14 @@ guardar en `crm_creatives` (`layout` y `prompt` permiten volver a descargarlas m
 ### Estilo visual "náutico" (Keelwise)
 
 `crm_products.motif = 'nautico'` (editable en la ficha del producto, "Estilo visual") suma 8 plantillas al generador de ese producto: `arco`, `brujula`, `ancla`, `velero` (relajadas), `dividido` (estándar) y `plano`, `condensada`, `pixel` (alocadas). Los productos sin ese motivo no las reciben nunca. Son dibujos originales hechos con código (`src/lib/adRenderNautico.js`); los textos salen igual que siempre del brief. Usan Anton, Allura y Press Start 2P, autoalojadas con `@fontsource`. Aprenden como el resto (tick, veredicto, alcance).
+
+### Creador de posts: mapa de dolor y conceptos (Andromeda)
+
+Andromeda es la etapa de Meta que elige, entre millones de anuncios, unos miles para cada persona mirando qué dice y muestra cada uno; las piezas que "se ven o se sienten parecidas" cuentan como una sola. Por eso la variedad tiene que estar en el **concepto**, no solo en el diseño.
+
+- `crm_products.pain_map` (jsonb, validado por `cleanPainMap`): hasta 4 clientes (`name` = "Para …", `pain`, `promise`, `proof`, `objection` + `answer`) y tres textos de marca (`belief`, `math`, `story`).
+- Tipos de mensaje (`CONCEPTS` en `src/lib/adGenerator.js`): agitar el dolor, la promesa, romper una objeción, prueba real (por cliente) y cómo funciona, contra la corriente, la cuenta, por qué lo hicimos (por producto). Los que no tienen datos aparecen como "le falta" en el generador.
+- Una tanda no repite la combinación tipo × cliente mientras queden sin usar; la línea alterna problema → salida → confianza en lunes, miércoles y viernes.
+- Cada concepto trae: 3 diseños (mismo texto), texto del posteo (gancho → desarrollo → llamado), hasta 5 hashtags (límite de Instagram; queda el de la marca y rota el resto) y un prompt para pegar en Claude (no se guarda; se vuelve a generar).
+- Cada pieza guarda `layout.angle` + `layout.persona`; el código de concepto (`dolor-c1`) agrupa resultados en Publicidad → "Por concepto" y suma al aprendizaje (`concept:` en `adLearning`).
+- Sin mapa de dolor, el generador sigue con los ángulos del brief.

@@ -5,7 +5,7 @@ import { CREAM, CREAM_85, DISPLAY, GOLD } from '../../components/ui/pageStyles';
 import { Badge, Btn, Card, Field, Notice, TickButtons, formatDay, inputStyle } from './adminUi';
 import { LINE } from './AdminShell';
 import Generator from './Generator';
-import { briefOf } from '../../lib/adGenerator';
+import { briefOf, conceptCode, conceptLabel } from '../../lib/adGenerator';
 import { downloadAd } from '../../lib/adRender';
 
 // Publicidad: las piezas (posts, videos) que se generan para cada producto, su
@@ -126,6 +126,54 @@ function Editor({ initial, products, client, onClose, onSaved }) {
   );
 }
 
+// Resultados agrupados por concepto (tipo de mensaje × cliente): es lo que conviene
+// comparar, no cada diseño por separado, porque las 3 versiones dicen lo mismo.
+export function byConcept(creatives) {
+  const groups = new Map();
+  for (const c of creatives) {
+    const code = conceptCode(c.layout);
+    if (!code) continue;
+    const g = groups.get(code) || { code, label: conceptLabel(c.layout.angle), persona: c.layout.persona, pieces: 0, published: 0, reach: 0, withReach: 0, worked: 0, failed: 0 };
+    g.pieces += 1;
+    if (c.status === 'publicado') g.published += 1;
+    const r = Number.isFinite(c.reach) ? c.reach : Number.isFinite(c.views) ? c.views : null;
+    if (c.status === 'publicado' && r !== null) { g.reach += r; g.withReach += 1; }
+    if (c.verdict === 'funciono') g.worked += 1;
+    if (c.verdict === 'no_funciono') g.failed += 1;
+    groups.set(code, g);
+  }
+  return [...groups.values()].sort((a, b) => (b.withReach ? b.reach / b.withReach : -1) - (a.withReach ? a.reach / a.withReach : -1) || b.pieces - a.pieces);
+}
+
+function ConceptTable({ rows }) {
+  if (rows.length === 0) return null;
+  const cell = { padding: '8px 10px', borderTop: `1px solid ${LINE}`, textAlign: 'left', verticalAlign: 'top' };
+  return (
+    <Card style={{ marginBottom: 20, overflowX: 'auto' }}>
+      <h3 style={{ fontFamily: DISPLAY, margin: '0 0 6px', fontSize: '1.15rem' }}>Por concepto</h3>
+      <p style={{ margin: '0 0 10px', color: CREAM_85, fontSize: '0.9rem' }}>Compará conceptos, no diseños: el alcance promedio sale de las piezas publicadas con alcance cargado.</p>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.92rem', minWidth: 520 }}>
+        <thead>
+          <tr style={{ color: CREAM_85 }}>
+            <th style={cell}>Concepto</th><th style={cell}>Piezas</th><th style={cell}>Publicadas</th><th style={cell}>Alcance promedio</th><th style={cell}>Funcionó / No</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(r => (
+            <tr key={r.code}>
+              <td style={cell}>{r.label}{Number.isInteger(r.persona) ? ` · cliente ${r.persona + 1}` : ''} <span style={{ color: CREAM_85 }}>({r.code})</span></td>
+              <td style={cell}>{r.pieces}</td>
+              <td style={cell}>{r.published}</td>
+              <td style={cell}>{r.withReach ? nf.format(Math.round(r.reach / r.withReach)) : '—'}</td>
+              <td style={cell}>{r.worked} / {r.failed}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
+  );
+}
+
 function Piece({ c, product, productName, onEdit, onDelete, onTick, busy }) {
   const st = STATUSES[c.status] || STATUSES.idea;
   const v = c.verdict && VERDICTS[c.verdict];
@@ -167,6 +215,7 @@ function Piece({ c, product, productName, onEdit, onDelete, onTick, busy }) {
         {c.status === 'publicado' && <Badge>{PLATFORMS[c.platform] || c.platform}</Badge>}
         {v && <Badge color={v.color}>{v.label}</Badge>}
         {c.layout && c.layout.vibe && <Badge>{{ relajada: 'Relajada', estandar: 'Estándar', alocada: 'Alocada' }[c.layout.vibe] || c.layout.vibe}</Badge>}
+        {conceptCode(c.layout) && <Badge>concepto {conceptCode(c.layout)}</Badge>}
       </div>
       <h3 style={{ margin: 0, fontFamily: DISPLAY, fontSize: '1.2rem', overflowWrap: 'anywhere' }}>{c.title}</h3>
       <p style={{ margin: '4px 0 10px', color: CREAM_85, fontSize: '0.9rem' }}>
@@ -255,6 +304,8 @@ export default function Ads({ client, crm, onReload, initialProduct = '' }) {
       <p style={{ color: CREAM_85, margin: '0 0 20px' }}>
         {inProduct.length} {inProduct.length === 1 ? 'pieza' : 'piezas'} · {inProduct.filter(c => c.tick === 'verde').length} ✓ · {inProduct.filter(c => c.tick === 'rojo').length} ✗ · {worked} funcionaron · {failed} no funcionaron
       </p>
+
+      <ConceptTable rows={byConcept(inProduct)} />
 
       {error && <Notice kind="error">{error}</Notice>}
       {editing && (
