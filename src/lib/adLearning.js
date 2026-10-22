@@ -88,6 +88,8 @@ const LABELS = {
     clasica: 'plantilla clásica', tarjeta: 'plantilla tarjeta', columna: 'plantilla columna', aireada: 'plantilla aireada', minimal: 'plantilla minimal',
     marco: 'plantilla marco', tipografico: 'plantilla tipográfica', cartel: 'plantilla cartel', bloques: 'plantilla de bloques',
     diagonal: 'plantilla diagonal', circulo: 'plantilla círculo', franjas: 'plantilla franjas',
+    dividido: 'plantilla dividida', arco: 'plantilla arco luminoso', brujula: 'plantilla brújula', ancla: 'plantilla ancla',
+    velero: 'plantilla velero', condensada: 'plantilla letras condensadas', plano: 'plantilla plano técnico', pixel: 'plantilla pixelada',
   },
   theme: { dark: 'fondo oscuro', accent: 'fondo de color', light: 'fondo claro' },
   angle: { dolor: 'mensajes de dolor → solución', beneficio: 'mensajes de un beneficio', como: 'mensajes de cómo funciona', 'para-quien': 'mensajes de para quién es', 'todo-en-uno': 'mensajes todo en uno' },

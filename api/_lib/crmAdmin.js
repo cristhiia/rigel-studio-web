@@ -18,9 +18,14 @@ export const METRICS = ['reach', 'views', 'likes', 'comments', 'saves', 'shares'
 
 export const THEMES = new Set(['dark', 'accent', 'light'])
 // Rasgos de diseño de cada pieza (los usa el aprendizaje de estilos).
-export const TEMPLATES = new Set(['clasica', 'tarjeta', 'columna', 'aireada', 'minimal', 'marco', 'tipografico', 'cartel', 'bloques', 'diagonal', 'circulo', 'franjas'])
+export const TEMPLATES = new Set([
+  'clasica', 'tarjeta', 'columna', 'aireada', 'minimal', 'marco', 'tipografico', 'cartel', 'bloques', 'diagonal', 'circulo', 'franjas',
+  // motivos náuticos (producto con estilo visual 'nautico')
+  'dividido', 'arco', 'brujula', 'ancla', 'velero', 'condensada', 'plano', 'pixel',
+])
 export const VIBES = new Set(['relajada', 'estandar', 'alocada'])
 export const TICKS = new Set(['verde', 'rojo'])
+export const MOTIFS = new Set(['', 'nautico'])
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,39}$/
 const METRIC_MAX = 1_000_000_000
@@ -146,6 +151,7 @@ export function parseProduct(body) {
     hashtags: cleanText(body.hashtags, 300, 'Hashtags base'),
     accent: cleanHex(body.accent, 'Color de acento'),
     bg: cleanHex(body.bg, 'Color de fondo'),
+    ...(body.motif === undefined ? {} : { motif: oneOf(body.motif, MOTIFS, 'Estilo visual', '') }),
     billing_slug: billingSlug,
     manual_users: cleanInt(body.manual_users, 10_000_000, 'Usuarios'),
     manual_mrr_ars: cleanInt(body.manual_mrr_ars, MONEY_MAX, 'Ingreso mensual'),

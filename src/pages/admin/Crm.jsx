@@ -76,7 +76,7 @@ function ProductCard({ product, numbers, creatives, onOpen }) {
 
 const BLANK = {
   slug: '', name: '', tagline: '', status: 'idea', phase: '', pricing: '', how_it_works: '', features: '', next_steps: '',
-  competition: '', brand_brief: '', links: '', audience: '', pains: '', benefits: '', cta: '', tone: '', hashtags: '', accent: '', bg: '', billing_slug: '', manual_users: '0', manual_mrr_ars: '0', sort_order: '100',
+  competition: '', brand_brief: '', links: '', audience: '', pains: '', benefits: '', cta: '', tone: '', hashtags: '', accent: '', bg: '', motif: '', billing_slug: '', manual_users: '0', manual_mrr_ars: '0', sort_order: '100',
 };
 const toForm = p => Object.fromEntries(Object.keys(BLANK).map(k => [k, p[k] === null || p[k] === undefined ? '' : String(p[k])]));
 const slugify = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -200,6 +200,12 @@ function Ficha({ product, numbers, log, creatives, billing, client, onBack, onCh
         <Field label="Llamado a la acción" hint="Ej. “Sumate al acceso anticipado”."><input style={inputStyle} maxLength={100} {...field('cta')} /></Field>
         <Field label="Tono (para los videos)"><input style={inputStyle} maxLength={200} {...field('tone')} /></Field>
         <Field label="Hashtags base"><input style={inputStyle} maxLength={300} placeholder="#kiosco #emprendedores" {...field('hashtags')} /></Field>
+        <Field label="Estilo visual" hint="Con “Náutico” el generador suma plantillas con brújula, ancla, velero, plano y arco luminoso.">
+          <select style={inputStyle} {...field('motif')}>
+            <option value="">Ninguno (plantillas generales)</option>
+            <option value="nautico">Náutico</option>
+          </select>
+        </Field>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 160px' }}><Field label="Color de fondo (#RRGGBB)"><input style={inputStyle} maxLength={7} placeholder="#0b1530" {...field('bg')} /></Field></div>
           <div style={{ flex: '1 1 160px' }}><Field label="Color de acento (#RRGGBB)"><input style={inputStyle} maxLength={7} placeholder="#6aa7ff" {...field('accent')} /></Field></div>

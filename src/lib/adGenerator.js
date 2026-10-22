@@ -24,8 +24,17 @@ export const TEMPLATE_GROUPS = {
   estandar: ['clasica', 'tarjeta', 'columna'],
   alocada: ['cartel', 'bloques', 'diagonal', 'circulo', 'franjas'],
 };
-export const TEMPLATES = Object.values(TEMPLATE_GROUPS).flat();
-export const groupOf = tpl => SLOTS.find(s => TEMPLATE_GROUPS[s].includes(tpl)) || 'estandar';
+// Plantillas extra del estilo visual "náutico" (Keelwise): solo se usan en productos con ese motivo.
+export const NAUTICO_GROUPS = {
+  relajada: ['arco', 'brujula', 'ancla', 'velero'],
+  estandar: ['dividido'],
+  alocada: ['plano', 'condensada', 'pixel'],
+};
+export const TEMPLATES = [...Object.values(TEMPLATE_GROUPS).flat(), ...Object.values(NAUTICO_GROUPS).flat()];
+export const groupsFor = motif => (motif === 'nautico'
+  ? Object.fromEntries(SLOTS.map(s => [s, [...TEMPLATE_GROUPS[s], ...NAUTICO_GROUPS[s]]]))
+  : TEMPLATE_GROUPS);
+export const groupOf = tpl => SLOTS.find(s => TEMPLATE_GROUPS[s].includes(tpl) || NAUTICO_GROUPS[s].includes(tpl)) || 'estandar';
 
 const lines = text => String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
 const clip = (text, max) => {
@@ -50,6 +59,7 @@ export function briefOf(p) {
     hashtags: (p.hashtags || '').trim(),
     accent: /^#[0-9a-f]{6}$/i.test(p.accent || '') ? p.accent : '#E8B04B',
     bg: /^#[0-9a-f]{6}$/i.test(p.bg || '') ? p.bg : '#0A0E1A',
+    motif: p.motif === 'nautico' ? 'nautico' : '',
   };
 }
 
@@ -233,7 +243,7 @@ function weightedOrder(items, weightOf, rand) {
 // Decide plantilla y fondo de las 3 variantes de una idea. `batch` recuerda lo ya usado
 // en esta tanda para que las ideas no repitan plantilla (mientras queden sin usar) y
 // varíen el fondo.
-function pickStyles(content, learned, rand, batch) {
+function pickStyles(content, learned, rand, batch, groups) {
   const usedTimes = tpl => learned.used.get(tpl) || 0;
   const options = (tpls, themes, slot) => {
     const all = tpls.flatMap(tpl => themes.map(theme => ({ tpl, theme, layout: layoutOf(content, slot, tpl, theme) })));
@@ -247,21 +257,21 @@ function pickStyles(content, learned, rand, batch) {
   const themeRepeat = o => 0.5 ** (batch.themes.get(o.theme) || 0);
 
   // Estándar: una de las plantillas base, salvo que ya haya un estilo claramente preferido.
-  const everything = options(TEMPLATES, THEMES, 'estandar');
+  const everything = options(Object.values(groups).flat(), THEMES, 'estandar');
   const best = everything.reduce((m, o) => (candidateWeight(learned, o.layout) > candidateWeight(learned, m.layout) ? o : m), everything[0]);
   const adapted = candidateWeight(learned, best.layout) > 1.15;
   const standard = adapted
     ? best
-    : weightedPick(options(fresh(TEMPLATE_GROUPS.estandar), THEMES, 'estandar'), o => candidateWeight(learned, o.layout) * themeRepeat(o), rand);
+    : weightedPick(options(fresh(groups.estandar), THEMES, 'estandar'), o => candidateWeight(learned, o.layout) * themeRepeat(o), rand);
 
   const novelty = o => 1 / (1 + usedTimes(o.tpl) * 0.5);
   const calm = weightedPick(
-    options(fresh(TEMPLATE_GROUPS.relajada).filter(t => t !== standard.tpl), ['dark', 'light'], 'relajada'),
+    options(fresh(groups.relajada).filter(t => t !== standard.tpl), ['dark', 'light'], 'relajada'),
     o => candidateWeight(learned, o.layout) * novelty(o) * themeRepeat(o) * (o.theme === standard.theme ? 1 : 1.4),
     rand,
   );
   const wild = weightedPick(
-    options(fresh(TEMPLATE_GROUPS.alocada).filter(t => t !== standard.tpl), THEMES, 'alocada'),
+    options(fresh(groups.alocada).filter(t => t !== standard.tpl), THEMES, 'alocada'),
     o => candidateWeight(learned, o.layout) * novelty(o) ** 2 * themeRepeat(o) * (o.theme === standard.theme ? 1 : 1.6),
     rand,
   );
@@ -286,13 +296,14 @@ export function generatePieces(product, { kind, count = 2, seed = 1, creatives =
   const rand = rng(seed);
   const angles = weightedOrder(ANGLES.filter(a => a.ok(brief)), a => traitWeight(learned, `angle:${a.id}`), rand);
   const ideas = [];
+  const groups = groupsFor(brief.motif);
   const batch = { tpls: new Set(), themes: new Map() };
   let adaptedAny = false;
   for (let i = 0; i < n; i += 1) {
     const angle = angles[i % angles.length];
     const round = Math.floor(i / angles.length);
     const content = contentFor(brief, angle, i + round);
-    const { adapted, styles } = pickStyles(content, learned, rand, batch);
+    const { adapted, styles } = pickStyles(content, learned, rand, batch, groups);
     adaptedAny = adaptedAny || adapted;
     const variants = SLOTS.map(slot => {
       const layout = styles[slot].layout;

@@ -92,3 +92,8 @@ alter table public.crm_creatives add column if not exists prompt text not null d
 -- learning_since: al reiniciar lo aprendido, el generador ignora lo anterior.
 alter table public.crm_creatives add column if not exists tick text check (tick is null or tick in ('verde', 'rojo'));
 alter table public.crm_products  add column if not exists learning_since timestamptz;
+
+-- Estilo visual del producto: habilita plantillas con motivos propios en el generador
+-- ('nautico' = brújula, ancla, velero, plano y arco luminoso, para Keelwise).
+alter table public.crm_products add column if not exists motif text not null default '' check (motif in ('', 'nautico'));
+update public.crm_products set motif = 'nautico' where slug = 'keelwise' and motif = '';

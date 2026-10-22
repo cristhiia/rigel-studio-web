@@ -384,3 +384,7 @@ guardar en `crm_creatives` (`layout` y `prompt` permiten volver a descargarlas m
 - Una pieza exacta con puntaje total ≤ -1 no se vuelve a proponer. Con un estilo claramente preferido, la variante estándar pasa a usarlo.
 - El aprendizaje es por producto y por tipo (post, historia, video). `crm_products.learning_since` permite reiniciarlo sin borrar piezas.
 - API: `creative_save` (devuelve `id`, acepta `tick`), `creative_tick`, `learning_reset`.
+
+### Estilo visual "náutico" (Keelwise)
+
+`crm_products.motif = 'nautico'` (editable en la ficha del producto, "Estilo visual") suma 8 plantillas al generador de ese producto: `arco`, `brujula`, `ancla`, `velero` (relajadas), `dividido` (estándar) y `plano`, `condensada`, `pixel` (alocadas). Los productos sin ese motivo no las reciben nunca. Son dibujos originales hechos con código (`src/lib/adRenderNautico.js`); los textos salen igual que siempre del brief. Usan Anton, Allura y Press Start 2P, autoalojadas con `@fontsource`. Aprenden como el resto (tick, veredicto, alcance).

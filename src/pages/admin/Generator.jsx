@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { adminRequest } from '../../lib/adminAuth';
 import { FORMATS, MAX_PER_RUN, SLOT_LABELS, generatePieces } from '../../lib/adGenerator';
 import { learn, summarize } from '../../lib/adLearning';
-import { downloadAd, renderAd } from '../../lib/adRender';
+import '@fontsource/anton/latin-400.css';
+import '@fontsource/allura/latin-400.css';
+import '@fontsource/press-start-2p/latin-400.css';
+import { downloadAd, ensureFonts, renderAd } from '../../lib/adRender';
 import { CREAM, CREAM_85, DISPLAY, GOLD } from '../../components/ui/pageStyles';
 import { Badge, Btn, Card, Field, Notice, TickButtons, inputStyle } from './adminUi';
 import { LINE } from './AdminShell';
@@ -37,8 +40,13 @@ function Preview({ piece, product, brief }) {
   const ref = useRef(null);
   useEffect(() => {
     if (ref.current && piece.kind !== 'video') {
-      renderAd(ref.current, { layout: piece.layout, name: product.name, accent: brief.accent, bg: brief.bg, format: piece.kind });
+      let alive = true;
+      ensureFonts().then(() => {
+        if (alive && ref.current) renderAd(ref.current, { layout: piece.layout, name: product.name, accent: brief.accent, bg: brief.bg, format: piece.kind });
+      });
+      return () => { alive = false; };
     }
+    return undefined;
   }, [piece, product.name, brief.accent, brief.bg]);
   const { w, h } = FORMATS[piece.kind];
   return <canvas ref={ref} width={w} height={h} role="img" aria-label={piece.title} style={{ width: '100%', height: 'auto', borderRadius: 10, border: `1px solid ${LINE}`, display: 'block' }} />;

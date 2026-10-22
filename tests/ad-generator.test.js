@@ -1,7 +1,7 @@
 // Generador de publicidad: usa solo el brief, es determinista por semilla y sus
 // piezas pasan la validación del servidor.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { FORMATS, MAX_PER_RUN, SLOTS, TEMPLATES, TEMPLATE_GROUPS, briefIssues, briefOf, generatePieces, groupOf, videoPrompt } from '../src/lib/adGenerator.js'
+import { FORMATS, MAX_PER_RUN, NAUTICO_GROUPS, SLOTS, TEMPLATES, TEMPLATE_GROUPS, briefIssues, briefOf, generatePieces, groupOf, videoPrompt } from '../src/lib/adGenerator.js'
 import { blockPalette, wrapLines, paletteFor } from '../src/lib/adRender.js'
 import { isBlocked, learn, scoreOf, summarize } from '../src/lib/adLearning.js'
 import { TEMPLATES as API_TEMPLATES, VIBES, parseCreative } from '../api/_lib/crmAdmin.js'
@@ -96,6 +96,28 @@ describe('generatePieces', () => {
   it('los nombres de plantilla y estilo coinciden con los del servidor', () => {
     expect(new Set(TEMPLATES)).toEqual(API_TEMPLATES)
     expect(new Set(SLOTS)).toEqual(VIBES)
+  })
+  it('las plantillas náuticas solo salen en productos con ese estilo visual', () => {
+    const nautical = new Set(Object.values(NAUTICO_GROUPS).flat())
+    expect(nautical.size).toBe(8)
+    const seen = new Set()
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+      for (const kind of ['post', 'historia', 'video']) {
+        const plain = generatePieces(PRODUCT, { kind, count: MAX_PER_RUN, seed }).pieces
+        expect(plain.some(p => nautical.has(p.layout.tpl))).toBe(false)
+        const sea = generatePieces({ ...PRODUCT, motif: 'nautico' }, { kind, count: MAX_PER_RUN, seed }).pieces
+        for (const p of sea) {
+          seen.add(p.layout.tpl)
+          const row = parseCreative({ product: 'kioscopro', kind: p.kind, title: p.title, concept: p.concept, caption: p.caption, hashtags: p.hashtags, status: 'listo', layout: p.layout, prompt: p.prompt })
+          expect(row.layout.tpl).toBe(p.layout.tpl)
+          for (const t of [p.layout.headline, p.layout.sub, p.layout.cta, ...p.layout.bullets]) expect(ALLOWED.has(t), t).toBe(true)
+        }
+      }
+    }
+    for (const tpl of nautical) expect(seen.has(tpl), tpl).toBe(true)
+    expect(groupOf('arco')).toBe('relajada')
+    expect(groupOf('dividido')).toBe('estandar')
+    expect(groupOf('pixel')).toBe('alocada')
   })
   it('los videos traen prompt con el texto exacto y las reglas de seguridad', () => {
     const vs = generatePieces(PRODUCT, { kind: 'video', count: 1, seed: 9 }).pieces
