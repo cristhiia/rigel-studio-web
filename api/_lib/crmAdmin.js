@@ -18,7 +18,7 @@ export const METRICS = ['reach', 'views', 'likes', 'comments', 'saves', 'shares'
 
 export const THEMES = new Set(['dark', 'accent', 'light'])
 // Rasgos de diseño de cada pieza (los usa el aprendizaje de estilos).
-export const TEMPLATES = new Set(['clasica', 'aireada', 'minimal', 'cartel', 'bloques', 'diagonal'])
+export const TEMPLATES = new Set(['clasica', 'tarjeta', 'columna', 'aireada', 'minimal', 'marco', 'tipografico', 'cartel', 'bloques', 'diagonal', 'circulo', 'franjas'])
 export const VIBES = new Set(['relajada', 'estandar', 'alocada'])
 export const TICKS = new Set(['verde', 'rojo'])
 const HEX_RE = /^#[0-9a-fA-F]{6}$/

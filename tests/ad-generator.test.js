@@ -69,7 +69,7 @@ describe('generatePieces', () => {
         for (const idea of generatePieces(PRODUCT, { kind, count: MAX_PER_RUN, seed }).ideas) {
           expect(idea.variants.map(v => v.slot)).toEqual(SLOTS)
           const [calm, std, wild] = idea.variants.map(v => v.layout)
-          expect(std.tpl).toBe('clasica')
+          expect(TEMPLATE_GROUPS.estandar).toContain(std.tpl)
           expect(TEMPLATE_GROUPS.relajada).toContain(calm.tpl)
           expect(TEMPLATE_GROUPS.alocada).toContain(wild.tpl)
           expect(new Set([calm.tpl, std.tpl, wild.tpl]).size).toBe(3)
@@ -79,6 +79,18 @@ describe('generatePieces', () => {
           expect(wild.angle).toBe(idea.angle)
         }
       }
+    }
+  })
+  it('dentro de una tanda no se repite la plantilla de cada nivel mientras queden sin usar', () => {
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const ideas = generatePieces(PRODUCT, { kind: 'post', count: 3, seed }).ideas
+      for (const slot of [0, 1, 2]) {
+        const tpls = ideas.map(i => i.variants[slot].layout.tpl)
+        expect(new Set(tpls).size, `${seed} ${SLOTS[slot]} ${tpls}`).toBe(3)
+      }
+      const five = generatePieces(PRODUCT, { kind: 'historia', count: 5, seed }).ideas
+      expect(new Set(five.map(i => i.variants[0].layout.tpl)).size).toBeGreaterThanOrEqual(4)
+      expect(new Set(five.map(i => i.variants[2].layout.tpl)).size).toBe(5)
     }
   })
   it('los nombres de plantilla y estilo coinciden con los del servidor', () => {
@@ -166,7 +178,7 @@ describe('aprendizaje', () => {
     const r = run([mk(1), mk(2, {}, { tpl: 'cartel' })])
     expect(r.adapted).toBe(false)
     expect(r.learned.rated).toBe(0)
-    for (const i of r.ideas) expect(i.variants[1].layout.tpl).toBe('clasica')
+    for (const i of r.ideas) expect(TEMPLATE_GROUPS.estandar).toContain(i.variants[1].layout.tpl)
   })
   it('puntaje: tick, veredicto y alcance contra la mediana', () => {
     expect(scoreOf(mk(1, { tick: 'verde' }))).toBe(1)

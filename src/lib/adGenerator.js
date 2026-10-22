@@ -19,7 +19,11 @@ export const MAX_PER_RUN = 5;
 // Estilos: la del medio es la estándar, a los costados una más tranquila y una más atrevida.
 export const SLOTS = ['relajada', 'estandar', 'alocada'];
 export const SLOT_LABELS = { relajada: 'Relajada', estandar: 'Estándar', alocada: 'Alocada' };
-export const TEMPLATE_GROUPS = { relajada: ['aireada', 'minimal'], estandar: ['clasica'], alocada: ['cartel', 'bloques', 'diagonal'] };
+export const TEMPLATE_GROUPS = {
+  relajada: ['aireada', 'minimal', 'marco', 'tipografico'],
+  estandar: ['clasica', 'tarjeta', 'columna'],
+  alocada: ['cartel', 'bloques', 'diagonal', 'circulo', 'franjas'],
+};
 export const TEMPLATES = Object.values(TEMPLATE_GROUPS).flat();
 export const groupOf = tpl => SLOTS.find(s => TEMPLATE_GROUPS[s].includes(tpl)) || 'estandar';
 
@@ -226,34 +230,45 @@ function weightedOrder(items, weightOf, rand) {
     .map(x => x.item);
 }
 
-// Decide plantilla y fondo de las 3 variantes de una idea.
-function pickStyles(content, learned, rand) {
+// Decide plantilla y fondo de las 3 variantes de una idea. `batch` recuerda lo ya usado
+// en esta tanda para que las ideas no repitan plantilla (mientras queden sin usar) y
+// varíen el fondo.
+function pickStyles(content, learned, rand, batch) {
   const usedTimes = tpl => learned.used.get(tpl) || 0;
   const options = (tpls, themes, slot) => {
     const all = tpls.flatMap(tpl => themes.map(theme => ({ tpl, theme, layout: layoutOf(content, slot, tpl, theme) })));
     const free = all.filter(o => !isBlocked(learned, o.layout));
     return free.length ? free : all;
   };
+  const fresh = tpls => {
+    const left = tpls.filter(t => !batch.tpls.has(t));
+    return left.length ? left : tpls;
+  };
+  const themeRepeat = o => 0.5 ** (batch.themes.get(o.theme) || 0);
 
-  // Estándar: la plantilla de siempre, salvo que ya haya un estilo claramente preferido.
+  // Estándar: una de las plantillas base, salvo que ya haya un estilo claramente preferido.
   const everything = options(TEMPLATES, THEMES, 'estandar');
   const best = everything.reduce((m, o) => (candidateWeight(learned, o.layout) > candidateWeight(learned, m.layout) ? o : m), everything[0]);
   const adapted = candidateWeight(learned, best.layout) > 1.15;
   const standard = adapted
     ? best
-    : weightedPick(options(TEMPLATE_GROUPS.estandar, THEMES, 'estandar'), o => candidateWeight(learned, o.layout), rand);
+    : weightedPick(options(fresh(TEMPLATE_GROUPS.estandar), THEMES, 'estandar'), o => candidateWeight(learned, o.layout) * themeRepeat(o), rand);
 
   const novelty = o => 1 / (1 + usedTimes(o.tpl) * 0.5);
   const calm = weightedPick(
-    options(TEMPLATE_GROUPS.relajada.filter(t => t !== standard.tpl), ['dark', 'light'], 'relajada'),
-    o => candidateWeight(learned, o.layout) * novelty(o) * (o.theme === standard.theme ? 1 : 1.4),
+    options(fresh(TEMPLATE_GROUPS.relajada).filter(t => t !== standard.tpl), ['dark', 'light'], 'relajada'),
+    o => candidateWeight(learned, o.layout) * novelty(o) * themeRepeat(o) * (o.theme === standard.theme ? 1 : 1.4),
     rand,
   );
   const wild = weightedPick(
-    options(TEMPLATE_GROUPS.alocada.filter(t => t !== standard.tpl), THEMES, 'alocada'),
-    o => candidateWeight(learned, o.layout) * novelty(o) ** 2 * (o.theme === standard.theme ? 1 : 1.6),
+    options(fresh(TEMPLATE_GROUPS.alocada).filter(t => t !== standard.tpl), THEMES, 'alocada'),
+    o => candidateWeight(learned, o.layout) * novelty(o) ** 2 * themeRepeat(o) * (o.theme === standard.theme ? 1 : 1.6),
     rand,
   );
+  for (const o of [standard, calm, wild]) {
+    batch.tpls.add(o.tpl);
+    batch.themes.set(o.theme, (batch.themes.get(o.theme) || 0) + 1);
+  }
   return { adapted, styles: { relajada: calm, estandar: standard, alocada: wild } };
 }
 
@@ -271,12 +286,13 @@ export function generatePieces(product, { kind, count = 2, seed = 1, creatives =
   const rand = rng(seed);
   const angles = weightedOrder(ANGLES.filter(a => a.ok(brief)), a => traitWeight(learned, `angle:${a.id}`), rand);
   const ideas = [];
+  const batch = { tpls: new Set(), themes: new Map() };
   let adaptedAny = false;
   for (let i = 0; i < n; i += 1) {
     const angle = angles[i % angles.length];
     const round = Math.floor(i / angles.length);
     const content = contentFor(brief, angle, i + round);
-    const { adapted, styles } = pickStyles(content, learned, rand);
+    const { adapted, styles } = pickStyles(content, learned, rand, batch);
     adaptedAny = adaptedAny || adapted;
     const variants = SLOTS.map(slot => {
       const layout = styles[slot].layout;
