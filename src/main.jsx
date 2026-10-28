@@ -8,6 +8,7 @@ import Blog from './pages/blog/Blog.jsx'
 import BlogPost from './pages/blog/BlogPost.jsx'
 import Keelwise from './pages/keelwise/Keelwise.jsx'
 import KeelwiseGracias from './pages/keelwise/Gracias.jsx'
+import KeelwiseEscritorio from './pages/keelwise/Escritorio.jsx'
 import Terminos from './pages/legal/Terminos.jsx'
 import Privacidad from './pages/legal/Privacidad.jsx'
 import Arrepentimiento from './pages/legal/Arrepentimiento.jsx'
@@ -33,6 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/keelwise" element={<Keelwise />} />
           <Route path="/keelwise/gracias" element={<KeelwiseGracias />} />
+          <Route path="/keelwise/escritorio" element={<KeelwiseEscritorio />} />
           <Route path="/terminos" element={<Terminos />} />
           <Route path="/privacidad" element={<Privacidad />} />
           <Route path="/arrepentimiento" element={<Arrepentimiento />} />

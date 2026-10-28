@@ -22,6 +22,8 @@ export const KEELWISE_PRICE = {
 // muestra en lista de espera (WhatsApp) en vez de cobrar. Para abrir la venta:
 // VITE_KEELWISE_SALES_OPEN=true en Vercel (Production) y volver a desplegar.
 export const KEELWISE_SALES_OPEN = import.meta.env.VITE_KEELWISE_SALES_OPEN === 'true';
+// Link a la versión web de Keelwise (la app en la compu). Vacío = todavía no publicada.
+export const KEELWISE_WEB_URL = (import.meta.env.VITE_KEELWISE_WEB_URL || '').trim();
 export const KEELWISE_WAITLIST_HREF = whatsappLink('Hola, quiero anotarme en el acceso anticipado de Keelwise');
 
 export const formatArs = n =>
