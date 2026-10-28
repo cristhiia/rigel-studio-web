@@ -7,7 +7,6 @@ const NAV_LINKS = [
   ['Casos de Estudio', '/#casos'],
   ['Productos',        '/#productos'],
   ['Keelwise',         '/keelwise'],
-  ['Niveles',          '/#planes'],
   ['Tecnologías',      '/#tecnologias'],
   ['Blog',             '/blog'],
   ['Servicios',        '/servicios'],
@@ -86,7 +85,7 @@ export default function Footer() {
             R <span style={{ color: '#D4AF37' }}>✦</span>
           </span>
           <p style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: '1rem', color: 'rgba(240,231,213,0.85)', margin: '0 0 8px', lineHeight: 1.6 }}>
-            Software que entiende tu negocio.
+            Menos ruido. Más control.
           </p>
           <span style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: '0.8rem', color: 'rgba(240,231,213,0.85)' }}>
             San Juan, Argentina

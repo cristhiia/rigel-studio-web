@@ -39,7 +39,7 @@ export default function Philosophy() {
         {/* Firma */}
         <div className="mt-20 flex flex-col items-end">
           <div className="text-right">
-            <p className="font-display text-2xl mb-1" style={{ color: '#F0E7D5' }}>Cristian G.</p>
+            <p className="font-display text-2xl mb-1" style={{ color: '#F0E7D5' }}>Cristhian G.</p>
             <p className="text-xs tracking-widest uppercase font-bold" style={{ color: '#D4AF37' }}>
               Director · Rigel Studio
             </p>

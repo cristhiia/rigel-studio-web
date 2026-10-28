@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageShell from '../../components/layout/PageShell';
-import { KEELWISE_PRICE, formatArs } from '../../data/products';
+import { KEELWISE_PRICE, KEELWISE_SALES_OPEN, KEELWISE_WAITLIST_HREF, formatArs } from '../../data/products';
 import { usePageMeta } from '../../lib/seo';
 import { startCheckout, useBillingProduct } from '../../lib/billing';
 import {
@@ -38,6 +38,13 @@ const FEATURES = [
   { title: 'Vaults y Puerto Seguro', text: 'Separá tu ahorro en reservas con nombre y mirá cuánto llevás protegido.' },
   { title: 'Interés compuesto', text: 'Mirá cuánto puede crecer lo que ahorrás si lo dejás trabajar con el tiempo.' },
   { title: 'Mercado', text: 'Llevá tu despensa y tu lista de compras: Keelwise te marca qué falta reponer.' },
+];
+
+// Lista de espera (sin cobro): cada interesado es una conversación por WhatsApp.
+const waitSteps = trialDays => [
+  { title: 'Anotate por WhatsApp', text: 'Tocás el botón y nos mandás el mensaje que ya viene escrito. No pagás nada.' },
+  { title: 'Te avisamos cuando abramos', text: 'Abrimos los lugares de a poco. Te escribimos con el link para instalar la app en tu Android.' },
+  { title: `Probás ${trialDays} días gratis`, text: 'Si te sirve, seguís con la suscripción mensual. Si no, no pagás nada.' },
 ];
 
 const steps = trialDays => [
@@ -90,6 +97,29 @@ const faq = trialDays => [
     link: { to: '/arrepentimiento', label: 'Ir al Botón de arrepentimiento' },
   },
 ];
+
+// Preguntas que aplican antes de abrir la venta (sin cobro ni descarga todavía).
+const WAIT_FAQ = ['¿Funciona en iPhone?', '¿Qué pasa con mis datos?', '¿Por qué no está en Google Play?'];
+const waitFaq = trialDays => [
+  {
+    q: '¿Cuándo abre?',
+    a: [`Estamos terminando los últimos detalles. Si te anotás, te escribimos por WhatsApp apenas abramos. Vas a tener ${trialDays} días para probarla sin pagar.`],
+  },
+  ...faq(trialDays).filter(item => WAIT_FAQ.includes(item.q)),
+];
+
+function WaitlistCta({ price }) {
+  return (
+    <div style={{ width: '100%', maxWidth: 520 }}>
+      <a href={KEELWISE_WAITLIST_HREF} target="_blank" rel="noopener noreferrer" className="kw-btn" style={primaryButton}>
+        Quiero el acceso anticipado
+      </a>
+      <p style={{ ...body, marginTop: 12 }}>
+        Te anotás por WhatsApp y te avisamos cuando abramos. Ahora no pagás nada; cuando abra, cuesta USD {price.usd} por mes con {price.trialDays} días gratis.
+      </p>
+    </div>
+  );
+}
 
 // Baja hasta el formulario sin cambiar la URL: un link "#suscribirme" suma una
 // entrada al historial por cada toque y el botón Volver parece trabado.
@@ -197,6 +227,8 @@ export default function Keelwise() {
   const price = useBillingProduct(SLUG, KEELWISE_PRICE);
   const { usd, ars, trialDays } = price;
   const PRICE_LINE = priceLine(price);
+  const open = KEELWISE_SALES_OPEN;
+  const Cta = open ? SubscribeForm : WaitlistCta;
 
   return (
     <PageShell ctaLabel="Contacto" ctaHref="/#contacto">
@@ -223,18 +255,23 @@ export default function Keelwise() {
         <p style={{ ...body, fontSize: '1.125rem', maxWidth: 620, margin: '24px 0 12px' }}>
           Keelwise ordena tus gastos, te dice cuánto te queda por día y te muestra cómo gastás con reportes claros para ahorrar mejor.
         </p>
-        <p style={{ fontFamily: DISPLAY, fontWeight: 500, fontSize: '1.15rem', color: CREAM, margin: '0 0 28px' }}>
-          {PRICE_LINE}
-        </p>
-        <SubscribeForm id="hero" price={price} />
+        {open && (
+          <p style={{ fontFamily: DISPLAY, fontWeight: 500, fontSize: '1.15rem', color: CREAM, margin: '0 0 28px' }}>
+            {PRICE_LINE}
+          </p>
+        )}
+        <Cta id="hero" price={price} />
       </section>
 
       {/* ── Capturas ── */}
-      <section style={{ ...container, ...section }} aria-label="Capturas de la app">
-        <div className="kw-grid-4">
-          {SCREENSHOTS.map(s => <Screenshot key={s.file} {...s} />)}
-        </div>
-      </section>
+      {/* Se muestra cuando haya al menos una captura subida (ready: true). */}
+      {SCREENSHOTS.some(s => s.ready) && (
+        <section style={{ ...container, ...section }} aria-label="Capturas de la app">
+          <div className="kw-grid-4">
+            {SCREENSHOTS.filter(s => s.ready).map(s => <Screenshot key={s.file} {...s} />)}
+          </div>
+        </section>
+      )}
 
       {/* ── Funciones ── */}
       <section style={{ ...container, ...section }}>
@@ -254,9 +291,9 @@ export default function Keelwise() {
       {/* ── Cómo funciona ── */}
       <section style={{ ...container, ...section }}>
         <span style={label}>Cómo funciona</span>
-        <h2 style={h2}>Tres pasos y empezás</h2>
+        <h2 style={h2}>{open ? 'Tres pasos y empezás' : 'Cómo sumarte'}</h2>
         <ol className="kw-grid-3" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {steps(trialDays).map((s, i) => (
+          {(open ? steps : waitSteps)(trialDays).map((s, i) => (
             <li key={s.title} style={{ borderTop: `1px solid rgba(212,175,55,0.4)`, paddingTop: 20 }}>
               <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: '2rem', color: GOLD }}>{i + 1}</span>
               <h3 style={{ ...h3, marginTop: 8 }}>{s.title}</h3>
@@ -269,7 +306,7 @@ export default function Keelwise() {
       {/* ── Precio ── */}
       <section style={{ ...narrow, ...section }} id="precio">
         <div className="glass-card glass-card--zenith" style={{ padding: '40px 32px', borderRadius: 24, textAlign: 'center' }}>
-          <span style={label}>Precio</span>
+          <span style={label}>{open ? 'Precio' : 'Precio cuando abra'}</span>
           <p style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 'clamp(2.4rem, 8vw, 3.4rem)', color: CREAM, margin: 0, lineHeight: 1 }}>
             USD {usd}
             <span style={{ fontFamily: BODY, fontWeight: 400, fontSize: '1.1rem', color: CREAM_85 }}> / mes</span>
@@ -284,7 +321,9 @@ export default function Keelwise() {
               </li>
             ))}
           </ul>
-          <a href="#suscribirme" onClick={goToForm} className="kw-btn" style={primaryButton}>Probar {trialDays} días gratis</a>
+          {open
+            ? <a href="#suscribirme" onClick={goToForm} className="kw-btn" style={primaryButton}>Probar {trialDays} días gratis</a>
+            : <a href={KEELWISE_WAITLIST_HREF} target="_blank" rel="noopener noreferrer" className="kw-btn" style={primaryButton}>Quiero el acceso anticipado</a>}
         </div>
       </section>
 
@@ -292,7 +331,7 @@ export default function Keelwise() {
       <section style={{ ...narrow, ...section }}>
         <span style={label}>Preguntas frecuentes</span>
         <h2 style={h2}>Lo que suelen preguntarnos</h2>
-        {faq(trialDays).map(item => (
+        {(open ? faq : waitFaq)(trialDays).map(item => (
           <details key={item.q} className="kw-faq" style={{ borderBottom: '1px solid rgba(240,231,213,0.15)', padding: '20px 0' }}>
             <summary style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
               <span style={{ fontFamily: DISPLAY, fontWeight: 500, fontSize: '1.1rem', color: CREAM }}>{item.q}</span>
@@ -310,13 +349,15 @@ export default function Keelwise() {
 
       {/* ── CTA final ── */}
       <section id="suscribirme" style={{ ...container, padding: '72px 24px 96px' }}>
-        <h2 style={{ ...h2, maxWidth: 640 }}>Probalo {trialDays} días. Si no te sirve, lo cancelás.</h2>
-        <p style={{ ...body, fontFamily: DISPLAY, fontWeight: 500, color: CREAM, marginBottom: 24 }}>{PRICE_LINE}</p>
-        <SubscribeForm id="final" price={price} />
-        <p style={{ ...body, marginTop: 32 }}>
-          ¿Te suscribiste y te arrepentiste?{' '}
-          <Link to="/arrepentimiento" style={{ color: GOLD, textDecoration: 'underline' }}>Botón de arrepentimiento</Link>
-        </p>
+        <h2 style={{ ...h2, maxWidth: 640 }}>{open ? `Probalo ${trialDays} días. Si no te sirve, lo cancelás.` : 'Anotate y te avisamos cuando abramos.'}</h2>
+        {open && <p style={{ ...body, fontFamily: DISPLAY, fontWeight: 500, color: CREAM, marginBottom: 24 }}>{PRICE_LINE}</p>}
+        <Cta id="final" price={price} />
+        {open && (
+          <p style={{ ...body, marginTop: 32 }}>
+            ¿Te suscribiste y te arrepentiste?{' '}
+            <Link to="/arrepentimiento" style={{ color: GOLD, textDecoration: 'underline' }}>Botón de arrepentimiento</Link>
+          </p>
+        )}
       </section>
     </PageShell>
   );

@@ -58,7 +58,8 @@ export const body = {
   margin: 0,
 };
 
-export const section = { padding: '72px 0' };
+// Va después de container / narrow: mantiene el margen lateral de 24px en el celular.
+export const section = { padding: '72px 24px' };
 
 // Botón principal: fondo dorado con texto azul noche (no es texto dorado).
 export const primaryButton = {

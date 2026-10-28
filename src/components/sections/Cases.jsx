@@ -6,7 +6,7 @@ const projects = [
     id: 1,
     title: 'Keelwise',
     tag: 'Fintech & UX',
-    shortDescription: 'Ecosistema Fintech. Convergencia perfecta entre hardware de billetera inteligente y software de gestión.',
+    shortDescription: 'Finanzas personales para Argentina: cuánto podés gastar hoy, gastos por categoría y reportes claros. Tus datos quedan en tu celular.',
     buttonText: 'Explorar Arquitectura',
     problem: 'Falta de educación financiera y herramientas de gestión desconectadas de la realidad del usuario.',
     solution: 'Desarrollo de un gestor de gastos con reportes de tono argentino que muestran cuánto se puede gastar por día y detectan patrones de consumo.',

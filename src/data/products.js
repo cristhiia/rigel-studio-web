@@ -18,6 +18,12 @@ export const KEELWISE_PRICE = {
   trialDays: 7,
 };
 
+// Mientras no estén cargadas las credenciales de Mercado Pago y el APK, Keelwise se
+// muestra en lista de espera (WhatsApp) en vez de cobrar. Para abrir la venta:
+// VITE_KEELWISE_SALES_OPEN=true en Vercel (Production) y volver a desplegar.
+export const KEELWISE_SALES_OPEN = import.meta.env.VITE_KEELWISE_SALES_OPEN === 'true';
+export const KEELWISE_WAITLIST_HREF = whatsappLink('Hola, quiero anotarme en el acceso anticipado de Keelwise');
+
 export const formatArs = n =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
 
@@ -30,7 +36,9 @@ export const products = [
     statusLabel: 'Acceso anticipado',
     description:
       'Te dice cuánto podés gastar hoy, ordena tus gastos por categoría y te muestra cómo gastás con reportes claros.',
-    meta: `USD ${KEELWISE_PRICE.usd} por mes · ${KEELWISE_PRICE.trialDays} días gratis`,
+    meta: KEELWISE_SALES_OPEN
+      ? `USD ${KEELWISE_PRICE.usd} por mes · ${KEELWISE_PRICE.trialDays} días gratis`
+      : `Lista de espera · USD ${KEELWISE_PRICE.usd} por mes cuando abra`,
     cta: { label: 'Conocer Keelwise', href: '/keelwise' },
   },
   {

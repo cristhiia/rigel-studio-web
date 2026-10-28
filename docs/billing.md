@@ -399,3 +399,7 @@ Andromeda es la etapa de Meta que elige, entre millones de anuncios, unos miles 
 - Cada concepto trae: 3 diseños (mismo texto), texto del posteo (gancho → desarrollo → llamado), hasta 5 hashtags (límite de Instagram; queda el de la marca y rota el resto) y un prompt para pegar en Claude (no se guarda; se vuelve a generar).
 - Cada pieza guarda `layout.angle` + `layout.persona`; el código de concepto (`dolor-c1`) agrupa resultados en Publicidad → "Por concepto" y suma al aprendizaje (`concept:` en `adLearning`).
 - Sin mapa de dolor, el generador sigue con los ángulos del brief.
+
+### Interruptor de venta de Keelwise
+
+Mientras no estén las credenciales de Mercado Pago (`MP_ACCESS_TOKEN`, secreto del webhook) y el APK, la landing muestra **lista de espera por WhatsApp** en vez del formulario de cobro. Para abrir la venta: cargar `VITE_KEELWISE_SALES_OPEN=true` en Vercel (Production), completar las variables de Mercado Pago, subir el APK y volver a desplegar. El texto de `/keelwise` en `src/data/seo.js` también hay que volver a pasarlo a "USD 10 por mes, 7 días gratis".

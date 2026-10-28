@@ -8,7 +8,7 @@ export const ROUTE_META = {
   '/keelwise': {
     title: 'Keelwise | App de finanzas personales para Android — Rigel Studio',
     description:
-      'Keelwise te dice cuánto podés gastar hoy, ordena tus gastos y te muestra cómo gastás con reportes claros. USD 10 por mes, 7 días gratis. Acceso anticipado para Android.',
+      'Keelwise te dice cuánto podés gastar hoy, ordena tus gastos y te muestra cómo gastás con reportes claros. Acceso anticipado para Android: anotate en la lista de espera.',
   },
   '/keelwise/gracias': {
     title: 'Gracias por suscribirte | Keelwise',

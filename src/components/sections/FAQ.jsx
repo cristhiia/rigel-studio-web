@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 const FAQS = [
   {
     q: '¿Cuánto cuesta desarrollar un sistema con Rigel Studio?',
-    a: 'Depende del alcance y la complejidad de tu proyecto. Tenemos tres niveles: NEXUS desde $350.000 ARS para proyectos de entrada rápida (2-3 semanas), VANGUARD desde $1.200.000 ARS para proyectos completos, y ZENITH desde $2.500.000 ARS para la experiencia completa. La mejor forma de saberlo es contarnos tu idea — la primera charla es sin costo.',
+    a: 'Depende del alcance y la complejidad de tu proyecto. Nuestros productos tienen precio publicado; para algo a medida, contanos tu idea: la primera charla es sin costo y te pasamos un presupuesto por escrito antes de empezar.',
   },
   {
     q: '¿Cuánto tiempo tarda un proyecto?',
-    a: 'Un proyecto NEXUS tarda 2 a 3 semanas. Un VANGUARD completo entre 6 y 10 semanas. Trabajamos con entregas parciales para que puedas ver el avance desde la primera semana.',
+    a: 'Un proyecto chico tarda de 2 a 3 semanas; uno completo, entre 6 y 10. Trabajamos con entregas parciales para que puedas ver el avance desde la primera semana.',
   },
   {
     q: '¿Trabajan con empresas de otras provincias o solo San Juan?',

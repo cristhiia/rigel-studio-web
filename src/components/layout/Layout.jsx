@@ -8,7 +8,6 @@ import Philosophy from '../sections/Philosophy';
 import Cases from '../sections/Cases';
 import Products from '../sections/Products';
 import TechStack from '../sections/TechStack';
-import MembershipSection from '../sections/MembershipSection';
 import FAQ from '../sections/FAQ';
 import Contact from '../sections/Contact';
 import RigelBackground from '../canvas/RigelBackground';
@@ -462,10 +461,6 @@ export default function Layout() {
 
         <section id="casos" className="fade-section min-h-screen w-full relative" style={{ zIndex: 10 }}>
           <Cases onSelectCase={setSelectedCase} />
-        </section>
-
-        <section id="planes" className="fade-section w-full relative" style={{ zIndex: 10 }}>
-          <MembershipSection />
         </section>
 
         <section id="tecnologias" className="fade-section w-full relative" style={{ zIndex: 10 }}>
