@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import PageShell from '../../components/layout/PageShell';
-import { KEELWISE_WEB_URL, whatsappLink } from '../../data/products';
+import { KEELWISE_SALES_OPEN, KEELWISE_WEB_URL, whatsappLink } from '../../data/products';
 import { usePageMeta } from '../../lib/seo';
 import { CREAM, GOLD, body, container, h1, h2, h3, label, narrow, primaryButton, section } from '../../components/ui/pageStyles';
 
@@ -35,7 +35,10 @@ const FACTS = [
 export default function Escritorio() {
   usePageMeta('/keelwise/escritorio');
   const live = Boolean(KEELWISE_WEB_URL);
-  const cta = live
+  // Mientras no se venda, el botón principal anota en la lista de espera; quien ya tiene
+  // acceso (testers, accesos manuales) entra por el link de abajo.
+  const open = live && KEELWISE_SALES_OPEN;
+  const cta = open
     ? { href: KEELWISE_WEB_URL, label: 'Abrir Keelwise en la compu' }
     : { href: WAIT_HREF, label: 'Quiero probarla en la compu' };
 
@@ -54,9 +57,15 @@ export default function Escritorio() {
           La misma Keelwise del celular, abierta en el navegador de tu computadora. Si pasás el día frente a la pantalla, cargás el gasto sin sacar el teléfono y ves cuánto podés gastar hoy.
         </p>
         <a href={cta.href} target="_blank" rel="noopener noreferrer" className="kd-btn" style={primaryButton}>{cta.label}</a>
-        {!live && (
+        {!open && (
           <p style={{ ...body, marginTop: 12, maxWidth: 560 }}>
-            Estamos terminando la versión para la compu. Anotate por WhatsApp y te avisamos cuando esté.
+            {live ? 'Estamos en acceso anticipado. Anotate por WhatsApp y te avisamos cuando abramos lugares.' : 'Estamos terminando la versión para la compu. Anotate por WhatsApp y te avisamos cuando esté.'}
+            {live && (
+              <>
+                {' '}¿Ya tenés acceso?{' '}
+                <a href={KEELWISE_WEB_URL} target="_blank" rel="noopener noreferrer" style={{ color: GOLD, textDecoration: 'underline' }}>Abrí Keelwise en la compu</a>.
+              </>
+            )}
           </p>
         )}
       </section>

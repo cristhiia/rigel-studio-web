@@ -13,8 +13,6 @@ export const ROUTE_META = {
   '/keelwise/escritorio': {
     title: 'Keelwise en la compu | Anotá tus gastos desde el navegador',
     description: 'La misma Keelwise del celular, en el navegador de tu computadora: anotás un gasto en dos segundos y ves cuánto podés gastar hoy.',
-    // Pasar a false cuando la versión web esté publicada (VITE_KEELWISE_WEB_URL).
-    noindex: true,
   },
   '/keelwise/gracias': {
     title: 'Gracias por suscribirte | Keelwise',

@@ -64,7 +64,12 @@ const faq = trialDays => [
       '4. Tocá Instalar y abrí Keelwise.',
     ],
   },
-  { q: '¿Funciona en iPhone?', a: ['Por ahora no. Keelwise es solo para Android.'] },
+  { q: '¿Funciona en iPhone?', a: ['Por ahora no tiene app para iPhone. Desde cualquier compu la podés usar en el navegador.'] },
+  {
+    q: '¿La puedo usar en la compu?',
+    a: ['Sí: la misma Keelwise abre en el navegador de tu computadora y la podés dejar instalada como app. Cada dispositivo guarda sus propios datos.'],
+    link: { to: '/keelwise/escritorio', label: 'Ver Keelwise en la compu' },
+  },
   {
     q: 'No me llega el código para entrar',
     a: [
@@ -99,7 +104,7 @@ const faq = trialDays => [
 ];
 
 // Preguntas que aplican antes de abrir la venta (sin cobro ni descarga todavía).
-const WAIT_FAQ = ['¿Funciona en iPhone?', '¿Qué pasa con mis datos?', '¿Por qué no está en Google Play?'];
+const WAIT_FAQ = ['¿Funciona en iPhone?', '¿La puedo usar en la compu?', '¿Qué pasa con mis datos?', '¿Por qué no está en Google Play?'];
 const waitFaq = trialDays => [
   {
     q: '¿Cuándo abre?',
