@@ -53,7 +53,7 @@ export default function ContactForm() {
         <View style={styles.content}>
           <View style={styles.leftColumn}>
             <Text style={styles.title}>Rigel Studio.</Text>
-            <Text style={styles.subtitle}>Desarrollo de software boutique y sistemas de alta eficiencia. Cuéntanos sobre tu operación.</Text>
+            <Text style={styles.subtitle}>Software simple para problemas concretos. Cuéntanos sobre tu operación.</Text>
           </View>
 
           <View style={styles.rightColumn}>

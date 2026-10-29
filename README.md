@@ -2,7 +2,7 @@
 
 **Software que entiende tu negocio**
 
-Sitio web oficial de Rigel Studio, agencia digital boutique especializada en desarrollo de software a medida para pymes y emprendedores.
+Sitio web oficial de Rigel Studio, estudio de software de San Juan, Argentina: productos simples para problemas concretos y software a medida para pymes y emprendedores.
 
 ---
 
