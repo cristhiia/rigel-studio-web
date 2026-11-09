@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageShell from '../../components/layout/PageShell';
-import { KEELWISE_PRICE, KEELWISE_SALES_OPEN, KEELWISE_WAITLIST_HREF, formatArs } from '../../data/products';
+import { KEELWISE_PRICE, KEELWISE_SALES_OPEN, formatArs, keelwiseWaitlistHref, pieceCode } from '../../data/products';
 import { usePageMeta } from '../../lib/seo';
 import { startCheckout, useBillingProduct } from '../../lib/billing';
 import {
@@ -113,10 +113,13 @@ const waitFaq = trialDays => [
   ...faq(trialDays).filter(item => WAIT_FAQ.includes(item.q)),
 ];
 
+// El código de pieza (?c=A) se lee del link; si no hay, el mensaje sale sin código.
+const waitlistHref = () => keelwiseWaitlistHref(typeof window === 'undefined' ? '' : pieceCode(window.location.search));
+
 function WaitlistCta({ price }) {
   return (
     <div style={{ width: '100%', maxWidth: 520 }}>
-      <a href={KEELWISE_WAITLIST_HREF} target="_blank" rel="noopener noreferrer" className="kw-btn" style={primaryButton}>
+      <a href={waitlistHref()} target="_blank" rel="noopener noreferrer" className="kw-btn" style={primaryButton}>
         Quiero el acceso anticipado
       </a>
       <p style={{ ...body, marginTop: 12 }}>
@@ -328,7 +331,7 @@ export default function Keelwise() {
           </ul>
           {open
             ? <a href="#suscribirme" onClick={goToForm} className="kw-btn" style={primaryButton}>Probar {trialDays} días gratis</a>
-            : <a href={KEELWISE_WAITLIST_HREF} target="_blank" rel="noopener noreferrer" className="kw-btn" style={primaryButton}>Quiero el acceso anticipado</a>}
+            : <a href={waitlistHref()} target="_blank" rel="noopener noreferrer" className="kw-btn" style={primaryButton}>Quiero el acceso anticipado</a>}
         </div>
       </section>
 

@@ -24,7 +24,16 @@ export const KEELWISE_PRICE = {
 export const KEELWISE_SALES_OPEN = import.meta.env.VITE_KEELWISE_SALES_OPEN === 'true';
 // Link a la versión web de Keelwise (la app en la compu). Vacío = todavía no publicada.
 export const KEELWISE_WEB_URL = (import.meta.env.VITE_KEELWISE_WEB_URL || '').trim();
-export const KEELWISE_WAITLIST_HREF = whatsappLink('Hola, quiero anotarme en el acceso anticipado de Keelwise');
+const WAITLIST_TEXT = 'Hola, quiero anotarme en el acceso anticipado de Keelwise';
+export const KEELWISE_WAITLIST_HREF = whatsappLink(WAITLIST_TEXT);
+// Código de pieza para saber qué publicación trajo a cada anotado. Llega en el link como
+// ?c=A (por ejemplo https://rigelstudio.com.ar/keelwise?c=A) y viaja dentro del mensaje de
+// WhatsApp, entre paréntesis al final. Solo letras, números y guiones, hasta 12 caracteres.
+export const pieceCode = search => {
+  const raw = new URLSearchParams(search || '').get('c') || '';
+  return /^[A-Za-z0-9_-]{1,12}$/.test(raw) ? raw : '';
+};
+export const keelwiseWaitlistHref = code => (code ? whatsappLink(`${WAITLIST_TEXT} (${code})`) : KEELWISE_WAITLIST_HREF);
 
 export const formatArs = n =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
