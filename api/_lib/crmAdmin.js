@@ -22,10 +22,12 @@ export const TEMPLATES = new Set([
   'clasica', 'tarjeta', 'columna', 'aireada', 'minimal', 'marco', 'tipografico', 'cartel', 'bloques', 'diagonal', 'circulo', 'franjas',
   // motivos náuticos (producto con estilo visual 'nautico')
   'dividido', 'arco', 'brujula', 'ancla', 'velero', 'condensada', 'plano', 'pixel',
+  // estilo 'estabilidad' (una sola plantilla; cambia el dibujo)
+  'estabilidad',
 ])
 export const VIBES = new Set(['relajada', 'estandar', 'alocada'])
 export const TICKS = new Set(['verde', 'rojo'])
-export const MOTIFS = new Set(['', 'nautico'])
+export const MOTIFS = new Set(['', 'nautico', 'estabilidad'])
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,39}$/
 const METRIC_MAX = 1_000_000_000

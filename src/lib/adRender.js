@@ -6,6 +6,7 @@ import {
   FONT, SERIF, blockPalette, contrast, drawLines, ensureFonts, fitHeadline, good, measureWith, paletteFor, pill, wholeBullets, wrapLines,
 } from './adRenderKit';
 import { NAUTICO_DRAW } from './adRenderNautico';
+import { ESTABILIDAD_DRAW } from './adRenderEstabilidad';
 
 export { blockPalette, ensureFonts, paletteFor, wrapLines };
 
@@ -595,7 +596,7 @@ function franjas(c) {
   if (layout.cta) pill(ctx, layout.cta, pad, bottom - 100, { bg: pal.pillBg, fg: pal.pillFg, maxW });
 }
 
-export const TEMPLATE_DRAW = { clasica, tarjeta, columna, aireada, minimal, marco, tipografico, cartel, bloques, diagonal, circulo, franjas, ...NAUTICO_DRAW };
+export const TEMPLATE_DRAW = { clasica, tarjeta, columna, aireada, minimal, marco, tipografico, cartel, bloques, diagonal, circulo, franjas, ...NAUTICO_DRAW, ...ESTABILIDAD_DRAW };
 
 export function renderAd(canvas, { layout, name, accent, bg, format = 'post' }) {
   const { w, h } = FORMATS[format] || FORMATS.post;

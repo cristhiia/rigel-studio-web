@@ -112,7 +112,7 @@ export const good = (a, b, min = 3) => contrast(a, b) >= min;
 // Las fuentes se cargan bajo demanda: hay que esperarlas antes de dibujar en el canvas.
 export async function ensureFonts() {
   if (typeof document === 'undefined' || !document.fonts) return;
-  const wanted = ['500 40px "Space Grotesk"', '700 40px "Space Grotesk"', '400 40px "Inter"', '40px Anton', '40px Allura', '16px "Press Start 2P"'];
+  const wanted = ['500 40px "Space Grotesk"', '700 40px "Space Grotesk"', '400 40px "Inter"', '500 40px "Fraunces"', '600 40px "Fraunces"', 'italic 400 40px "Fraunces"', '40px Anton', '40px Allura', '16px "Press Start 2P"'];
   await Promise.all(wanted.map(f => document.fonts.load(f, 'AaÁáñ¿').catch(() => {})));
 }
 

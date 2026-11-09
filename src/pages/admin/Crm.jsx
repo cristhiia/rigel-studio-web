@@ -269,10 +269,11 @@ function Ficha({ product, numbers, log, creatives, billing, client, onBack, onCh
         <Field label="Tono (para los videos)"><input style={inputStyle} maxLength={200} {...field('tone')} /></Field>
         <Field label="Hashtags" hint="Instagram acepta hasta 5 por post. Si cargás más, el creador deja siempre el de la marca y rota el resto entre posts."><input style={inputStyle} maxLength={300} placeholder="#kiosco #emprendedores #sanjuan" {...field('hashtags')} /></Field>
         <PainMap map={map} setMap={setMap} />
-        <Field label="Estilo visual" hint="Con “Náutico” el generador suma plantillas con brújula, ancla, velero, plano y arco luminoso.">
+        <Field label="Estilo visual" hint="Con “Náutico” el generador suma plantillas con brújula, ancla, velero, plano y arco luminoso. Con “Estabilidad” todas las piezas usan la misma plantilla (fondo papel, Fraunces, línea de agua y llamado a la acción) y solo cambia el dibujo.">
           <select style={inputStyle} {...field('motif')}>
             <option value="">Ninguno (plantillas generales)</option>
             <option value="nautico">Náutico</option>
+            <option value="estabilidad">Estabilidad (quilla, línea de agua y dibujo náutico)</option>
           </select>
         </Field>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>

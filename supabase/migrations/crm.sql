@@ -108,3 +108,7 @@ do $$ begin
   alter table public.crm_products add constraint crm_products_pain_map_shape
     check (jsonb_typeof(pain_map) = 'object' and octet_length(pain_map::text) <= 12000);
 exception when duplicate_object then null; end $$;
+
+-- Estilo 'estabilidad' (Keelwise): fondo papel, Fraunces, línea de agua y un dibujo náutico por pieza.
+alter table public.crm_products drop constraint if exists crm_products_motif_check;
+alter table public.crm_products add constraint crm_products_motif_check check (motif in ('', 'nautico', 'estabilidad'));

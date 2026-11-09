@@ -14,6 +14,7 @@
 // avisa qué falta en vez de rellenar.
 
 import { EMPTY, candidateWeight, isBlocked, learn, summarize, traitWeight } from './adLearning';
+import { DRAWING_LABEL, drawingOf } from './adRenderEstabilidad';
 
 export const FORMATS = {
   post: { w: 1080, h: 1350, label: 'Post' },
@@ -37,10 +38,16 @@ export const NAUTICO_GROUPS = {
   estandar: ['dividido'],
   alocada: ['plano', 'condensada', 'pixel'],
 };
-export const TEMPLATES = [...Object.values(TEMPLATE_GROUPS).flat(), ...Object.values(NAUTICO_GROUPS).flat()];
-export const groupsFor = motif => (motif === 'nautico'
-  ? Object.fromEntries(SLOTS.map(s => [s, [...TEMPLATE_GROUPS[s], ...NAUTICO_GROUPS[s]]]))
-  : TEMPLATE_GROUPS);
+// Estilo "estabilidad" (Keelwise): una sola plantilla para todo. Las piezas comparten las
+// mismas líneas y lo único que cambia es el dibujo (ancla, brújula, timón, faro, velero).
+export const ESTABILIDAD_GROUPS = { relajada: ['estabilidad'], estandar: ['estabilidad'], alocada: ['estabilidad'] };
+export const TEMPLATES = [...Object.values(TEMPLATE_GROUPS).flat(), ...Object.values(NAUTICO_GROUPS).flat(), 'estabilidad'];
+export const groupsFor = motif => {
+  if (motif === 'estabilidad') return ESTABILIDAD_GROUPS;
+  return motif === 'nautico'
+    ? Object.fromEntries(SLOTS.map(s => [s, [...TEMPLATE_GROUPS[s], ...NAUTICO_GROUPS[s]]]))
+    : TEMPLATE_GROUPS;
+};
 export const groupOf = tpl => SLOTS.find(s => TEMPLATE_GROUPS[s].includes(tpl) || NAUTICO_GROUPS[s].includes(tpl)) || 'estandar';
 
 const lines = text => String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
@@ -66,7 +73,7 @@ export function briefOf(p) {
     hashtags: (p.hashtags || '').trim(),
     accent: /^#[0-9a-f]{6}$/i.test(p.accent || '') ? p.accent : '#E8B04B',
     bg: /^#[0-9a-f]{6}$/i.test(p.bg || '') ? p.bg : '#0A0E1A',
-    motif: p.motif === 'nautico' ? 'nautico' : '',
+    motif: p.motif === 'nautico' || p.motif === 'estabilidad' ? p.motif : '',
     map: painMapOf(p),
   };
 }
@@ -328,6 +335,37 @@ const VIDEO_STYLE = {
   },
 };
 
+
+// Prompt del estilo "estabilidad": el mismo video para todas las piezas, solo cambia el dibujo.
+function estabilidadVideoPrompt(brief, layout, index, scenes, total) {
+  const drawing = DRAWING_LABEL[drawingOf(layout)];
+  return [
+    `Hacé un video vertical de ${total} segundos para Reels / TikTok / Historias de “${brief.name}”.`,
+    '',
+    'Formato: 1080×1920 (9:16), 30 fps, MP4 H.264. Es motion graphics: texto y formas animadas. Sin voz, sin música con derechos, sin imágenes de stock ni caras.',
+    'Identidad (siempre la misma, es la de Keelwise): fondo #FAFAF7, texto #0F2557, agua #D9EBF6. Tipografía Fraunces (peso 500; cursiva 400 para las palabras clave; 600 para la marca).',
+    brief.tone ? `Tono: ${brief.tone}.` : '',
+    brief.audience ? `Público: ${brief.audience}.` : '',
+    '',
+    'Estructura fija en todos los videos:',
+    '- Arriba, desde el segundo 0: la marca “Keelwise” con la quilla (un triángulo azul marino) a la izquierda. Se va en el último cierre.',
+    '- Abajo: una línea de agua (azul marino, 7 px) con relleno #D9EBF6. Arranca picada y se va calmando de a poco hasta quedar plana: es la quilla, el desorden que se ordena.',
+    `- Un dibujo náutico (${drawing}) en azul marino, hecho con trazos simples, apoyado sobre la línea de agua; acompaña el vaivén del agua y se asienta cuando se calma.`,
+    '- Texto alineado a la izquierda, grande, que entra palabra por palabra subiendo con ease-out (sin rebote, sin destellos) y sale hacia arriba antes de la siguiente escena.',
+    '',
+    'Escenas (el texto en pantalla es exacto, no lo cambies ni agregues otros):',
+    ...scenes,
+    '',
+    'Reglas:',
+    '- Texto grande y legible en un celular; nada de texto en los 250 px de arriba ni en los 340 px de abajo (zona tapada por la interfaz).',
+    '- Transiciones de 0,4 s con ease-out. Movimiento sereno, nada de cortes bruscos ni de colores que parezcan una oferta.',
+    '- En el cierre: “Keelwise” grande en Fraunces 600 y el llamado a la acción en cursiva, con una línea azul marino que se dibuja debajo.',
+    '- No inventes funciones, precios, números ni testimonios: usá solo los textos de arriba.',
+    '',
+    `Entrega: guardá el resultado como ./salida/${slugOf(brief.name)}-video-${index}-estabilidad.mp4 y decime la ruta. Usá tu skill de motion graphics si la tenés instalada; si no, HTML + CSS renderizado con Playwright y ffmpeg.`,
+  ].filter((l, i, a) => !(l === '' && (a[i - 1] === '' || a[i - 1] === undefined))).join('\n');
+}
+
 // Prompt listo para pegar en Claude Code y producir el video en motion graphics.
 export function videoPrompt(brief, layout, index = 1) {
   const style = VIDEO_STYLE[groupOf(layout.tpl)] || VIDEO_STYLE.estandar;
@@ -346,6 +384,7 @@ export function videoPrompt(brief, layout, index = 1) {
   const bg = layout.theme === 'accent' ? brief.accent : dark ? brief.bg : '#F6F1E7';
   const fg = layout.theme === 'accent' ? brief.bg : dark ? '#F6F1E7' : brief.bg;
   const accent = layout.theme === 'accent' ? brief.bg : brief.accent;
+  if (brief.motif === 'estabilidad') return estabilidadVideoPrompt(brief, layout, index, scenes, t);
   return [
     `Hacé un video vertical de ${t} segundos para Reels / TikTok / Historias de “${brief.name}”.`,
     '',
@@ -481,7 +520,9 @@ function weightedOrder(items, weightOf, rand) {
 // Decide plantilla y fondo de las 3 variantes de una idea. `batch` recuerda lo ya usado
 // en esta tanda para que las ideas no repitan plantilla (mientras queden sin usar) y
 // varíen el fondo.
-function pickStyles(content, learned, rand, batch, groups) {
+function pickStyles(content, learned, rand, batch, groups, themes = THEMES) {
+  // Con una sola plantilla no hay otra para variar: se usa la misma.
+  const others = (tpls, not) => { const f = tpls.filter(t => t !== not); return f.length ? f : tpls; };
   const usedTimes = tpl => learned.used.get(tpl) || 0;
   const options = (tpls, themes, slot) => {
     const all = tpls.flatMap(tpl => themes.map(theme => ({ tpl, theme, layout: layoutOf(content, slot, tpl, theme) })));
@@ -495,21 +536,21 @@ function pickStyles(content, learned, rand, batch, groups) {
   const themeRepeat = o => 0.5 ** (batch.themes.get(o.theme) || 0);
 
   // Estándar: una de las plantillas base, salvo que ya haya un estilo claramente preferido.
-  const everything = options(Object.values(groups).flat(), THEMES, 'estandar');
+  const everything = options([...new Set(Object.values(groups).flat())], themes, 'estandar');
   const best = everything.reduce((m, o) => (candidateWeight(learned, o.layout) > candidateWeight(learned, m.layout) ? o : m), everything[0]);
   const adapted = candidateWeight(learned, best.layout) > 1.15;
   const standard = adapted
     ? best
-    : weightedPick(options(fresh(groups.estandar), THEMES, 'estandar'), o => candidateWeight(learned, o.layout) * themeRepeat(o), rand);
+    : weightedPick(options(fresh(groups.estandar), themes, 'estandar'), o => candidateWeight(learned, o.layout) * themeRepeat(o), rand);
 
   const novelty = o => 1 / (1 + usedTimes(o.tpl) * 0.5);
   const calm = weightedPick(
-    options(fresh(groups.relajada).filter(t => t !== standard.tpl), ['dark', 'light'], 'relajada'),
+    options(others(fresh(groups.relajada), standard.tpl), themes.filter(t => t !== 'accent'), 'relajada'),
     o => candidateWeight(learned, o.layout) * novelty(o) * themeRepeat(o) * (o.theme === standard.theme ? 1 : 1.4),
     rand,
   );
   const wild = weightedPick(
-    options(fresh(groups.alocada).filter(t => t !== standard.tpl), THEMES, 'alocada'),
+    options(others(fresh(groups.alocada), standard.tpl), themes, 'alocada'),
     o => candidateWeight(learned, o.layout) * novelty(o) ** 2 * themeRepeat(o) * (o.theme === standard.theme ? 1 : 1.6),
     rand,
   );
@@ -544,7 +585,7 @@ export function generatePieces(product, { kind, count = 2, seed = 1, creatives =
   let adaptedAny = false;
   chosen.forEach((option, i) => {
     const content = contentFor(brief, option, offset + i + option.round);
-    const { adapted, styles } = pickStyles(content, learned, rand, batch, groups);
+    const { adapted, styles } = pickStyles(content, learned, rand, batch, groups, brief.motif === 'estabilidad' ? ['light'] : THEMES);
     adaptedAny = adaptedAny || adapted;
     const label = option.concept.label;
     const personaName = option.persona ? option.persona.name : '';
@@ -562,7 +603,7 @@ export function generatePieces(product, { kind, count = 2, seed = 1, creatives =
         title: clip(`${FORMATS[kind].label} · ${SLOT_LABELS[slot]} · ${label}: ${layout.headline}`, 120),
         concept: kind === 'video'
           ? `Concepto: ${label}.${who} Video vertical de motion graphics, estilo ${SLOT_LABELS[slot].toLowerCase()}. Gancho: “${layout.headline}”. Día sugerido: ${plan}.`
-          : `Concepto: ${label}.${who} ${size.label} ${size.w}×${size.h}, estilo ${SLOT_LABELS[slot].toLowerCase()} (${layout.tpl}), fondo ${layout.theme === 'dark' ? 'oscuro' : layout.theme === 'light' ? 'claro' : 'de color'}. Día sugerido: ${plan}.`,
+          : `Concepto: ${label}.${who} ${size.label} ${size.w}×${size.h}, estilo ${SLOT_LABELS[slot].toLowerCase()} (${layout.tpl === 'estabilidad' ? `dibujo: ${DRAWING_LABEL[drawingOf(layout)]}` : layout.tpl}), fondo ${layout.theme === 'dark' ? 'oscuro' : layout.theme === 'light' ? 'claro' : 'de color'}. Día sugerido: ${plan}.`,
         caption,
         hashtags,
         layout,
